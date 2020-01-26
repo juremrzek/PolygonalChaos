@@ -134,14 +134,19 @@ public class PlayScreen implements Screen {
                 collided = true;
             }
         }
-        if(!collided){
-            if(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)){
-                pointerAngle += pointerRotationSpeed;
-            }
-            if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)){
+        if(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)){
+            pointerAngle += pointerRotationSpeed;
+            if(collided){
                 pointerAngle -= pointerRotationSpeed;
             }
         }
+        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) {
+            pointerAngle -= pointerRotationSpeed;
+            if (collided) {
+                pointerAngle += pointerRotationSpeed;
+            }
+        }
+
 
         //move the pointer based on pointerAngle
         pointer.setCenter(center.x + (float)(pointerRotationR * Math.cos(Math.toRadians(pointerAngle))),
