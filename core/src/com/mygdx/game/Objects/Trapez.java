@@ -1,22 +1,30 @@
 package com.mygdx.game.Objects;
 
 public class Trapez extends Polygon {
-    private int size;
-    private int distance;
-    public Trapez(int size, int distance) {
+    private float size;
+    private float distance;
+    private float position;
+    public Trapez(int size, int distance, int position) {
         this.size = size;
         this.distance = distance;
+        this.position = position;
     }
-    public int getSize(){
+    public float getSize(){
         return size;
     }
-    public int getDistance(){
+    public float getDistance(){
         return distance;
     }
-    public void setSize(int size){
+    public void setSize(float size){
         this.size = size;
     }
-    public void setDistance(int distance){
+    public void setDistance(float distance){
         this.distance = distance;
+    }
+    public void setPosition(float position){
+        this.position = position;
+    }
+    public float getPosition(){
+        return position;
     }
 }

@@ -5,10 +5,8 @@ import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.graphics.g2d.PolygonRegion;
-import com.badlogic.gdx.graphics.g2d.PolygonSprite;
-import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.*;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
@@ -21,10 +19,14 @@ import com.badlogic.gdx.math.Intersector;
 
 public class PlayScreen implements Screen {
 
+    private float dt; //deltatime
+
     private MyGdxGame game;
     private FitViewport viewport;
     private OrthographicCamera camera;
     private Pixmap pixmap;
+    private SpriteBatch batch;
+    private BitmapFont font;
 
     //Objects to draw polygons
     private PolygonSprite poly;
@@ -40,30 +42,40 @@ public class PlayScreen implements Screen {
 
     //variables to create game diversity
     private short numberOfSides;
-    private int angle;
-    private int rotateSpeed;
-    private int scrollSpeed;
+    private float angle;
+    private float rotateSpeed;
+    private float scrollSpeed;
     private float tiltRatio;
     private boolean tiltRatioInc;
     private int [] colors;
+    private float middleHexagonOutline;
 
-    private int pointerAngle;
-    private int pointerRotationR;
-    private int pointerRotationSpeed;
+    private float pointerAngle;
+    private float pointerRotationR;
+    private float pointerRotationSpeed;
 
     private Point center;
 
     public PlayScreen(MyGdxGame game){
         angle = 0;
         numberOfSides = 6;
-        rotateSpeed = 2;
-        tiltRatio = 1f;
+        tiltRatio = 1;
         tiltRatioInc = true;
-        scrollSpeed = 2;
+
+        //variables that scale with delta
+        rotateSpeed = 100;
+        scrollSpeed = 100;
+
+        middleHexagonOutline = 25;
 
         this.game = new MyGdxGame();
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
+
+        batch = new SpriteBatch();
+        font = new BitmapFont(Gdx.files.internal("font.fnt"));
+
+        font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
 
         //Set the center of the screen
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
@@ -75,15 +87,18 @@ public class PlayScreen implements Screen {
         }
         pointer = new Polygon(new float[3], new float[3], 13);
         pointer.setCenter(center.x, center.y);
-        pointerRotationR = middleHexagon[0].getR()+25;
+        pointerRotationR = middleHexagon[0].getR()+middleHexagonOutline;
         pointerAngle = 0;
         pointerRotationSpeed = 10;
 
         trapezi = new Array<>();
-        trapezi.add(new Trapez(100, 400));
-        trapezi.add(new Trapez(100, 800));
+        trapezi.add(new Trapez(100, 600, 2));
+        trapezi.add(new Trapez(100, 800,2));
+        trapezi.add(new Trapez(100, 1200,5));
+        trapezi.add(new Trapez(100, 1400,0));
+        trapezi.add(new Trapez(100, 1800,3));
 
-        //Set the colors for the game - these can be changed later (gradient)
+        //Set the colors for the game - these can be changed later (fade)
         colors = new int[5];
         colors[0] = 0xfefcfdFF; //middle hexagon outline
         colors[1] = 0x747474FF; //middle hexagon fill
@@ -104,15 +119,22 @@ public class PlayScreen implements Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         drawBackground();
         for(Trapez t:trapezi) {
-            drawTrapez(t, t.getDistance(), t.getSize(), angle, 0xFFFFFFFF);
-            t.setDistance(t.getDistance()-scrollSpeed);
+            drawTrapez(t, t.getDistance(), t.getSize(), angle+(float)360/numberOfSides*t.getPosition(), 0xFFFFFFFF);
         }
         drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[1].getR()+10, center.x, center.y, colors[0], angle);
         drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y, colors[1], angle);
         drawEquilateralPolygon(pointer,3, pointer.getR(), pointer.getCenterX(), pointer.getCenterY(), colors[0], pointerAngle);
+        drawScreenBox(true,200, 80, 40);
+        drawScreenBox(true,400, 50, 20);
+        drawScreenBox(false,300, 50, 20);
+        drawText("Level 1", 32, 10, viewport.getWorldHeight()-8);
+        drawText("Time:", 30, viewport.getWorldWidth()-390, viewport.getWorldHeight()-8);
+        drawText("13", 48, viewport.getWorldWidth()-190, viewport.getWorldHeight()-15);
+        drawText(".48", 20, viewport.getWorldWidth()-70, viewport.getWorldHeight()-43);
         update(Gdx.graphics.getDeltaTime());
     }
     private void update(float delta){
+        dt = delta;
         if(Gdx.input.isKeyPressed(Input.Keys.ESCAPE))
             dispose();
         //Press F to make fullscreen (to do - put it as an option)
@@ -128,12 +150,17 @@ public class PlayScreen implements Screen {
             }
         }
 
+        for(Trapez t:trapezi) {
+            t.setDistance(t.getDistance()-scrollSpeed*dt);
+        }
+
         boolean collided = false;
         for(int i=0; i<trapezi.size; i++){
             if(Intersector.intersectPolygons(new FloatArray(trapezi.get(i).getPoints()), new FloatArray(pointer.getPoints()))){
                 collided = true;
             }
         }
+        //------------------------- needs to be changed - checks if a collision is happening on the side of trapez
         if(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)){
             pointerAngle += pointerRotationSpeed;
             if(collided){
@@ -146,18 +173,19 @@ public class PlayScreen implements Screen {
                 pointerAngle += pointerRotationSpeed;
             }
         }
+        //------------------------
 
 
         //move the pointer based on pointerAngle
         pointer.setCenter(center.x + (float)(pointerRotationR * Math.cos(Math.toRadians(pointerAngle))),
                 center.y + (float)(pointerRotationR * Math.sin(Math.toRadians(pointerAngle)))/tiltRatio);
-        pointerAngle += rotateSpeed;
+        pointerAngle += rotateSpeed*dt;
         if(pointerAngle > 360){
             pointerAngle = 0;
         }
 
         if(angle < 360)
-            angle+=rotateSpeed;
+            angle+=rotateSpeed*dt;
         else
             angle = 0;
 
@@ -165,9 +193,9 @@ public class PlayScreen implements Screen {
             tiltRatioInc = !tiltRatioInc;
         }
         if(tiltRatioInc)
-            tiltRatio+=0.01f;
+            tiltRatio+=0.1f*dt;
         else
-            tiltRatio-=0.01f;*/
+            tiltRatio-=0.1f*dt;*/
     }
     private void drawBackground(){
         for(int i=0; i<numberOfSides; i++) {
@@ -175,7 +203,7 @@ public class PlayScreen implements Screen {
             for (int j = 1; j < 3; j++) {
                 bgTriangle.xPoints[0] = viewport.getWorldWidth() / 2f;
                 bgTriangle.yPoints[0] = viewport.getWorldHeight() / 2f;
-                bgTriangle.xPoints[j] = bgTriangle.xPoints[0] + tiltRatio*(float) Math.cos(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999;
+                bgTriangle.xPoints[j] = bgTriangle.xPoints[0] + tiltRatio*(float) Math.cos(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999; //edges of background triangles need to be very far away from the center to cover the whole screen
                 bgTriangle.yPoints[j] = bgTriangle.yPoints[0] + (float) Math.sin(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999;
             }
             int tempColor;
@@ -196,14 +224,14 @@ public class PlayScreen implements Screen {
             drawPolygon(bgTriangle.getPoints(), tempColor);
         }
     }
-    private void drawEquilateralPolygon(Polygon p, int n, int r, float x, float y, int color, int startAngle){
+    private void drawEquilateralPolygon(Polygon p, int n, int r, float x, float y, int color, float startAngle){
         for(int i=0; i<p.xPoints.length; i++) {
             p.xPoints[i] = (float) (x + Math.cos(Math.toRadians(startAngle + (360f / p.xPoints.length) * i)) * r);
             p.yPoints[i] = (float) (y + Math.sin(Math.toRadians(startAngle + (360f / p.xPoints.length) * i)) * r / tiltRatio);
         }
         drawPolygon(p.getPoints(), color);
     }
-    private void drawTrapez(Polygon p, int distance, int size, int startAngle, int color){
+    private void drawTrapez(Polygon p, double distance, double size, double startAngle, int color){
         p.xPoints = new float[4];
         float x = center.x;
         p.xPoints[0] = (float)(x + distance*Math.cos(Math.toRadians(startAngle)));
@@ -219,6 +247,39 @@ public class PlayScreen implements Screen {
         p.yPoints[2] = (float)(y + (distance+size)*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
 
         drawPolygon(p.getPoints(), color);
+    }
+
+    //draws a box on a side of the screen (left or right) - boxOffset tells the difference between top and bottom lines of a trapezium
+    public void drawScreenBox(boolean right, float boxWidth, float boxHeight, float boxOffset) {
+        Polygon background;
+        float[] backgroundPointsX = new float[4];
+        float[] backgroundPointsY = new float[4];
+        if(right) {
+            backgroundPointsX[0] = viewport.getWorldWidth() - (boxWidth + boxOffset);
+            backgroundPointsX[1] = viewport.getWorldWidth();
+            backgroundPointsX[2] = viewport.getWorldWidth();
+            backgroundPointsX[3] = viewport.getWorldWidth() - boxWidth;
+        }
+        else {
+            backgroundPointsX[0] = -10;
+            backgroundPointsX[1] = boxWidth + boxOffset;
+            backgroundPointsX[2] = boxWidth;
+            backgroundPointsX[3] = -10;
+        }
+        backgroundPointsY[0] = viewport.getWorldHeight();
+        backgroundPointsY[1] = viewport.getWorldHeight();
+        backgroundPointsY[2] = viewport.getWorldHeight() - boxHeight;
+        backgroundPointsY[3] = viewport.getWorldHeight() - boxHeight;
+        background = new Polygon(backgroundPointsX, backgroundPointsY);
+        drawPolygon(background.getPoints(), 0x000000FF);
+    }
+
+    public void drawText(String text, float size, float x, float y) {
+        batch.setProjectionMatrix(camera.combined); //so taht coordinates are relative to camera (to the viewport)
+        batch.begin();
+        font.getData().setScale(size/64);
+        font.draw(batch, text, x, y);
+        batch.end();
     }
 
     @Override
@@ -261,5 +322,7 @@ public class PlayScreen implements Screen {
         polyBatch.dispose();
         textureSolid.dispose();
         game.dispose();
+        batch.dispose();
+        font.dispose();
     }
 }

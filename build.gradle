@@ -47,7 +47,10 @@ project(":desktop") {
         api "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
         api "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
         api "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
-        
+        // https://mvnrepository.com/artifact/com.badlogicgames.gdx/gdx-tools
+        compile group: 'com.badlogicgames.gdx', name: 'gdx-tools', version: '1.9.10'
+
+
     }
 }
 
