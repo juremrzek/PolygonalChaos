@@ -19,7 +19,7 @@ public class Polygon {
         this.yPoints = yPoints;
     }
     public Polygon(int r){
-        this.r =r ;
+        this.r = r ;
     }
     public Polygon(){}
     public float[] getPoints(){ //merge xPoints and yPoints into one table (so it is suitable for polygon collisions and drawing)
@@ -46,5 +46,10 @@ public class Polygon {
     public FloatArray getFloatArray(){
         return new FloatArray(getPoints());
     }
-
+    public float[] getXPoints(){
+        return xPoints;
+    }
+    public float[] getYPoints(){
+        return yPoints;
+    }
 }

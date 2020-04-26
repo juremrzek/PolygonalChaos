@@ -4,9 +4,11 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
@@ -16,6 +18,7 @@ import com.mygdx.game.Objects.Point;
 import com.mygdx.game.Objects.Polygon;
 import com.mygdx.game.Objects.Trapez;
 import com.badlogic.gdx.math.Intersector;
+import com.mygdx.game.Objects.Vector;
 
 public class PlayScreen implements Screen {
 
@@ -27,6 +30,7 @@ public class PlayScreen implements Screen {
     private Pixmap pixmap;
     private SpriteBatch batch;
     private BitmapFont font;
+    private ShapeRenderer sr;
 
     //Objects to draw polygons
     private PolygonSprite poly;
@@ -48,36 +52,41 @@ public class PlayScreen implements Screen {
     private float tiltRatio;
     private boolean tiltRatioInc;
     private int [] colors;
-    private float middleHexagonOutline;
+    private long startTime; //time when the screen was shown
 
     private float pointerAngle;
     private float pointerRotationR;
     private float pointerRotationSpeed;
 
     private Point center;
+    private Music music;
 
     public PlayScreen(MyGdxGame game){
         angle = 0;
         numberOfSides = 6;
         tiltRatio = 1;
         tiltRatioInc = true;
+        startTime = System.nanoTime();
 
         //variables that scale with delta
-        rotateSpeed = 100;
-        scrollSpeed = 100;
+        rotateSpeed = 200;
+        scrollSpeed = 200;
 
-        middleHexagonOutline = 25;
-
-        this.game = new MyGdxGame();
+        this.game = game;
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
 
         batch = new SpriteBatch();
         font = new BitmapFont(Gdx.files.internal("font.fnt"));
-
         font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+        sr = new ShapeRenderer();
+        sr.setColor(Color.BLACK);
 
-        //Set the center of the screen
+        music = Gdx.audio.newMusic(Gdx.files.internal("shaman_gravity.mp3"));
+        //music.setVolume(0.1f);
+        //music.play();
+
+        //Set the center of the screen as a point
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
 
         middleHexagon = new Polygon[2];
@@ -87,13 +96,17 @@ public class PlayScreen implements Screen {
         }
         pointer = new Polygon(new float[3], new float[3], 13);
         pointer.setCenter(center.x, center.y);
-        pointerRotationR = middleHexagon[0].getR()+middleHexagonOutline;
+        pointerRotationR = middleHexagon[0].getR()+25;
         pointerAngle = 0;
         pointerRotationSpeed = 10;
+        for(int i=0; i<pointer.xPoints.length; i++) {
+            pointer.xPoints[i] = (float) (pointer.getCenterX() + Math.cos(Math.toRadians(pointerAngle + (360f / pointer.xPoints.length) * i)) * pointer.getR());
+            pointer.yPoints[i] = (float) (pointer.getCenterY() + Math.sin(Math.toRadians(pointerAngle + (360f / pointer.xPoints.length) * i)) * pointer.getR() / tiltRatio);
+        }
 
         trapezi = new Array<>();
         trapezi.add(new Trapez(100, 600, 2));
-        trapezi.add(new Trapez(100, 800,2));
+        trapezi.add(new Trapez(100, 800, 2));
         trapezi.add(new Trapez(100, 1200,5));
         trapezi.add(new Trapez(100, 1400,0));
         trapezi.add(new Trapez(100, 1800,3));
@@ -110,7 +123,6 @@ public class PlayScreen implements Screen {
 
     @Override
     public void show() {
-
     }
 
     @Override
@@ -118,25 +130,21 @@ public class PlayScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         drawBackground();
-        for(Trapez t:trapezi) {
-            drawTrapez(t, t.getDistance(), t.getSize(), angle+(float)360/numberOfSides*t.getPosition(), 0xFFFFFFFF);
-        }
+        for(Trapez t:trapezi)
+            drawTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition(), 0xFFFFFFFF);
+        drawEquilateralPolygon(pointer,3, pointer.getR(), pointer.getCenterX(), pointer.getCenterY(), colors[0], pointerAngle);
         drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[1].getR()+10, center.x, center.y, colors[0], angle);
         drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y, colors[1], angle);
-        drawEquilateralPolygon(pointer,3, pointer.getR(), pointer.getCenterX(), pointer.getCenterY(), colors[0], pointerAngle);
-        drawScreenBox(true,200, 80, 40);
-        drawScreenBox(true,400, 50, 20);
-        drawScreenBox(false,300, 50, 20);
-        drawText("Level 1", 32, 10, viewport.getWorldHeight()-8);
-        drawText("Time:", 30, viewport.getWorldWidth()-390, viewport.getWorldHeight()-8);
-        drawText("13", 48, viewport.getWorldWidth()-190, viewport.getWorldHeight()-15);
-        drawText(".48", 20, viewport.getWorldWidth()-70, viewport.getWorldHeight()-43);
+        drawInfo();
         update(Gdx.graphics.getDeltaTime());
     }
     private void update(float delta){
         dt = delta;
-        if(Gdx.input.isKeyPressed(Input.Keys.ESCAPE))
+        if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
             dispose();
+        /*if(Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+            game.setScreen(new EditorScreen(game));
+        }*/
         //Press F to make fullscreen (to do - put it as an option)
         if(Gdx.input.isKeyPressed(Input.Keys.F)) {
             if(game.fullscreen) {
@@ -144,58 +152,51 @@ public class PlayScreen implements Screen {
                 game.fullscreen = false;
             }
             else {
-                Graphics.Monitor primaryMonitor = Gdx.graphics.getPrimaryMonitor();
-                Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(primaryMonitor));
+                Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(game.primaryMonitor));
                 game.fullscreen = true;
             }
         }
 
-        for(Trapez t:trapezi) {
-            t.setDistance(t.getDistance()-scrollSpeed*dt);
-        }
-
-        boolean collided = false;
         for(int i=0; i<trapezi.size; i++){
-            if(Intersector.intersectPolygons(new FloatArray(trapezi.get(i).getPoints()), new FloatArray(pointer.getPoints()))){
-                collided = true;
+            Trapez t = trapezi.get(i);
+            t.setDistance(t.getDistance()-scrollSpeed*dt);
+            if(t.getDistance() <= -t.getSize()/2)
+                trapezi.removeIndex(i);
+        }
+        boolean collidedLeft = false;
+        boolean collidedRight = false;
+        for(Trapez t:trapezi){
+            if(Intersector.intersectPolygons(new FloatArray(t.getPoints()), new FloatArray(pointer.getPoints()))){
+
+
+                //if pointers collides on the left side
+                collidedLeft = true;
+                Vector pointerVector = new Vector(center, new Point(pointer.getXPoints()[1], pointer.getYPoints()[1]));
+                Vector trapezVector = new Vector(new Point(t.getXPoints()[0], t.getYPoints()[0]), new Point(t.getXPoints()[3], t.getYPoints()[3]));
+                pointerAngle -= Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector)));
             }
         }
-        //------------------------- needs to be changed - checks if a collision is happening on the side of trapez
-        if(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)){
+        if ((Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)) && !collidedLeft) {
             pointerAngle += pointerRotationSpeed;
-            if(collided){
-                pointerAngle -= pointerRotationSpeed;
-            }
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) {
+        if ((Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) && !collidedRight) {
             pointerAngle -= pointerRotationSpeed;
-            if (collided) {
-                pointerAngle += pointerRotationSpeed;
-            }
         }
-        //------------------------
-
-
         //move the pointer based on pointerAngle
         pointer.setCenter(center.x + (float)(pointerRotationR * Math.cos(Math.toRadians(pointerAngle))),
                 center.y + (float)(pointerRotationR * Math.sin(Math.toRadians(pointerAngle)))/tiltRatio);
-        pointerAngle += rotateSpeed*dt;
-        if(pointerAngle > 360){
-            pointerAngle = 0;
-        }
+        /*pointerAngle += rotateSpeed*dt;
+        pointerAngle=pointerAngle%360;
+        angle+=rotateSpeed*dt;
+        angle=angle%360;*/
 
-        if(angle < 360)
-            angle+=rotateSpeed*dt;
-        else
-            angle = 0;
-
-        /*if(!(tiltRatio < 3 && tiltRatio >= 1)){ //tilt the screen up and down
+        /*if(!(tiltRatio < 2 && tiltRatio >= 1)){ //tilt the screen up and down
             tiltRatioInc = !tiltRatioInc;
         }
         if(tiltRatioInc)
-            tiltRatio+=0.1f*dt;
+            tiltRatio+=0.3f*dt;
         else
-            tiltRatio-=0.1f*dt;*/
+            tiltRatio-=0.3f*dt;*/
     }
     private void drawBackground(){
         for(int i=0; i<numberOfSides; i++) {
@@ -203,8 +204,8 @@ public class PlayScreen implements Screen {
             for (int j = 1; j < 3; j++) {
                 bgTriangle.xPoints[0] = viewport.getWorldWidth() / 2f;
                 bgTriangle.yPoints[0] = viewport.getWorldHeight() / 2f;
-                bgTriangle.xPoints[j] = bgTriangle.xPoints[0] + tiltRatio*(float) Math.cos(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999; //edges of background triangles need to be very far away from the center to cover the whole screen
-                bgTriangle.yPoints[j] = bgTriangle.yPoints[0] + (float) Math.sin(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999;
+                bgTriangle.xPoints[j] = bgTriangle.xPoints[0] + (float) Math.cos(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999; //edges of background triangles need to be very far away from the center to cover the whole screen
+                bgTriangle.yPoints[j] = bgTriangle.yPoints[0] + (float)(Math.sin(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999)/tiltRatio;
             }
             int tempColor;
             if(numberOfSides%2 == 0) {
@@ -241,10 +242,10 @@ public class PlayScreen implements Screen {
 
         p.yPoints = new float[4];
         float y = center.y;
-        p.yPoints[0] = (float)(y + distance*Math.sin(Math.toRadians(startAngle)));
-        p.yPoints[1] = (float)(y + distance*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
-        p.yPoints[3] = (float)(y + (distance+size)*Math.sin(Math.toRadians(startAngle)));
-        p.yPoints[2] = (float)(y + (distance+size)*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
+        p.yPoints[0] = (float)(y + distance/tiltRatio*Math.sin(Math.toRadians(startAngle)));
+        p.yPoints[1] = (float)(y + distance/tiltRatio*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
+        p.yPoints[3] = (float)(y + (distance+size)/tiltRatio*Math.sin(Math.toRadians(startAngle)));
+        p.yPoints[2] = (float)(y + (distance+size)/tiltRatio*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
 
         drawPolygon(p.getPoints(), color);
     }
@@ -275,11 +276,32 @@ public class PlayScreen implements Screen {
     }
 
     public void drawText(String text, float size, float x, float y) {
-        batch.setProjectionMatrix(camera.combined); //so taht coordinates are relative to camera (to the viewport)
+        batch.setProjectionMatrix(camera.combined); //so that coordinates are relative to camera (to the viewport)
         batch.begin();
         font.getData().setScale(size/64);
         font.draw(batch, text, x, y);
         batch.end();
+    }
+
+    public long getPassedTime() { //time that has passed since the beginning of the level (screen)
+        long passedTime = System.nanoTime() - startTime;
+        return passedTime;
+    }
+
+    public void drawInfo(){
+        long passedTime = getPassedTime();
+        long seconds = passedTime/1000000000; //conversion from nanoseconds to seconds
+        long milliseconds = (passedTime-seconds*1000000000)/100000000;
+        drawScreenBox(true,200, 80, 40);
+        drawScreenBox(true,400, 50, 20);
+        drawScreenBox(false,300, 50, 20);
+        drawText("Level 1", 32, 10, viewport.getWorldHeight()-8);
+        drawText("Time:", 30, viewport.getWorldWidth()-390, viewport.getWorldHeight()-8);
+        if(seconds >= 10)
+            drawText(""+seconds, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
+        else
+            drawText("0"+seconds, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
+        drawText("."+milliseconds, 20, viewport.getWorldWidth()-65, viewport.getWorldHeight()-43);
     }
 
     @Override
@@ -324,5 +346,8 @@ public class PlayScreen implements Screen {
         game.dispose();
         batch.dispose();
         font.dispose();
+        //music.stop();
+        music.dispose();
+        sr.dispose();
     }
 }
