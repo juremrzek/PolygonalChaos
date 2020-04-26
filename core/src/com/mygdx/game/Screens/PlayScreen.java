@@ -105,11 +105,11 @@ public class PlayScreen implements Screen {
         }
 
         trapezi = new Array<>();
-        trapezi.add(new Trapez(100, 600, 2));
-        trapezi.add(new Trapez(100, 800, 2));
-        trapezi.add(new Trapez(100, 1200,5));
-        trapezi.add(new Trapez(100, 1400,0));
-        trapezi.add(new Trapez(100, 1800,3));
+        trapezi.add(new Trapez(300, 600, 2));
+        //trapezi.add(new Trapez(100, 800, 2));
+        //trapezi.add(new Trapez(100, 1200,5));
+        trapezi.add(new Trapez(300, 1400,0));
+        trapezi.add(new Trapez(700, 1800,3));
 
         //Set the colors for the game - these can be changed later (fade)
         colors = new int[5];
@@ -160,7 +160,11 @@ public class PlayScreen implements Screen {
         for(int i=0; i<trapezi.size; i++){
             Trapez t = trapezi.get(i);
             t.setDistance(t.getDistance()-scrollSpeed*dt);
-            if(t.getDistance() <= -t.getSize()/2)
+            if(t.getDistance() <= 0){
+                t.setSize(t.getSize()-scrollSpeed*dt);
+                t.setDistance(t.getDistance()+scrollSpeed*dt);
+            }
+            if(t.getSize() <= 0)
                 trapezi.removeIndex(i);
         }
         boolean collidedLeft = false;
@@ -168,12 +172,24 @@ public class PlayScreen implements Screen {
         for(Trapez t:trapezi){
             if(Intersector.intersectPolygons(new FloatArray(t.getPoints()), new FloatArray(pointer.getPoints()))){
 
-
-                //if pointers collides on the left side
-                collidedLeft = true;
-                Vector pointerVector = new Vector(center, new Point(pointer.getXPoints()[1], pointer.getYPoints()[1]));
-                Vector trapezVector = new Vector(new Point(t.getXPoints()[0], t.getYPoints()[0]), new Point(t.getXPoints()[3], t.getYPoints()[3]));
-                pointerAngle -= Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector)));
+                Vector pointerVector;
+                Vector trapezVector;
+                //float trapezAngle = angle+(float)360/numberOfSides*t.getPosition();
+                if(pointerRotationR <= t.getDistance()){
+                    dispose();
+                } //now check if the pointer is colliding with right or left size of trapez
+                else if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, pointer.getXPoints()[2], pointer.getYPoints()[2])){
+                    collidedRight = true;
+                    pointerVector = new Vector(center, new Point(pointer.getXPoints()[2], pointer.getYPoints()[2]));
+                    trapezVector = new Vector(new Point(t.getXPoints()[1], t.getYPoints()[1]), new Point(t.getXPoints()[2], t.getYPoints()[2]));
+                    pointerAngle += Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector)));
+                }
+                else{
+                    collidedLeft = true;
+                    pointerVector = new Vector(center, new Point(pointer.getXPoints()[1], pointer.getYPoints()[1]));
+                    trapezVector = new Vector(new Point(t.getXPoints()[0], t.getYPoints()[0]), new Point(t.getXPoints()[3], t.getYPoints()[3]));
+                    pointerAngle -= Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector)));
+                }
             }
         }
         if ((Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)) && !collidedLeft) {
@@ -185,10 +201,10 @@ public class PlayScreen implements Screen {
         //move the pointer based on pointerAngle
         pointer.setCenter(center.x + (float)(pointerRotationR * Math.cos(Math.toRadians(pointerAngle))),
                 center.y + (float)(pointerRotationR * Math.sin(Math.toRadians(pointerAngle)))/tiltRatio);
-        /*pointerAngle += rotateSpeed*dt;
+        //pointerAngle += rotateSpeed*dt;
         pointerAngle=pointerAngle%360;
-        angle+=rotateSpeed*dt;
-        angle=angle%360;*/
+        //angle+=rotateSpeed*dt;
+        //angle=angle%360;
 
         /*if(!(tiltRatio < 2 && tiltRatio >= 1)){ //tilt the screen up and down
             tiltRatioInc = !tiltRatioInc;
