@@ -106,8 +106,6 @@ public class PlayScreen implements Screen {
 
         trapezi = new Array<>();
         trapezi.add(new Trapez(300, 600, 2));
-        //trapezi.add(new Trapez(100, 800, 2));
-        //trapezi.add(new Trapez(100, 1200,5));
         trapezi.add(new Trapez(300, 1400,0));
         trapezi.add(new Trapez(700, 1800,3));
 
@@ -165,7 +163,7 @@ public class PlayScreen implements Screen {
                 t.setDistance(t.getDistance()+scrollSpeed*dt);
             }
             if(t.getSize() <= 0)
-                trapezi.removeIndex(i);
+                t.setSize(0);
         }
         boolean collidedLeft = false;
         boolean collidedRight = false;
@@ -182,13 +180,13 @@ public class PlayScreen implements Screen {
                     collidedRight = true;
                     pointerVector = new Vector(center, new Point(pointer.getXPoints()[2], pointer.getYPoints()[2]));
                     trapezVector = new Vector(new Point(t.getXPoints()[1], t.getYPoints()[1]), new Point(t.getXPoints()[2], t.getYPoints()[2]));
-                    pointerAngle += Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector)));
+                    pointerAngle += Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector))/tiltRatio);
                 }
                 else{
                     collidedLeft = true;
                     pointerVector = new Vector(center, new Point(pointer.getXPoints()[1], pointer.getYPoints()[1]));
                     trapezVector = new Vector(new Point(t.getXPoints()[0], t.getYPoints()[0]), new Point(t.getXPoints()[3], t.getYPoints()[3]));
-                    pointerAngle -= Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector)));
+                    pointerAngle -= Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector))/tiltRatio);
                 }
             }
         }
@@ -201,10 +199,10 @@ public class PlayScreen implements Screen {
         //move the pointer based on pointerAngle
         pointer.setCenter(center.x + (float)(pointerRotationR * Math.cos(Math.toRadians(pointerAngle))),
                 center.y + (float)(pointerRotationR * Math.sin(Math.toRadians(pointerAngle)))/tiltRatio);
-        //pointerAngle += rotateSpeed*dt;
+        pointerAngle += rotateSpeed*dt;
         pointerAngle=pointerAngle%360;
-        //angle+=rotateSpeed*dt;
-        //angle=angle%360;
+        angle+=rotateSpeed*dt;
+        angle=angle%360;
 
         /*if(!(tiltRatio < 2 && tiltRatio >= 1)){ //tilt the screen up and down
             tiltRatioInc = !tiltRatioInc;
@@ -213,6 +211,7 @@ public class PlayScreen implements Screen {
             tiltRatio+=0.3f*dt;
         else
             tiltRatio-=0.3f*dt;*/
+        //tiltRatio = 2;
     }
     private void drawBackground(){
         for(int i=0; i<numberOfSides; i++) {
