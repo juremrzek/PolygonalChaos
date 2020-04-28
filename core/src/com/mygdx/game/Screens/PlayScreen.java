@@ -43,6 +43,7 @@ public class PlayScreen implements Screen {
     private Polygon[] middleHexagon; //Hexagon in the middle of the screen (2 of them because the bigger one is the outline)
     private Polygon pointer;
     private Array<Trapez> trapezi; //Obstacles (Array is Libgdx's equivalent to ArrayList)
+    private Trapez tlast;
 
     //variables to create game diversity
     private short numberOfSides;
@@ -52,7 +53,10 @@ public class PlayScreen implements Screen {
     private float tiltRatio;
     private boolean tiltRatioInc;
     private int [] colors;
+    private float levelTimestamp;
     private long startTime; //time when the screen was shown
+    long seconds;
+    long milliseconds;
 
     private float pointerAngle;
     private float pointerRotationR;
@@ -63,14 +67,16 @@ public class PlayScreen implements Screen {
 
     public PlayScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 6;
+        numberOfSides = 8;
         tiltRatio = 1;
         tiltRatioInc = true;
         startTime = System.nanoTime();
+        seconds = 0;
+        milliseconds = 0;
 
         //variables that scale with delta
         rotateSpeed = 200;
-        scrollSpeed = 200;
+        scrollSpeed = 0.15f;
 
         this.game = game;
         camera = new OrthographicCamera();
@@ -138,11 +144,10 @@ public class PlayScreen implements Screen {
     }
     private void update(float delta){
         dt = delta;
+        tlast = trapezi.get(trapezi.size - 1);
+        levelTimestamp += scrollSpeed*dt;
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
             dispose();
-        /*if(Gdx.input.isKeyJustPressed(Input.Keys.S)) {
-            game.setScreen(new EditorScreen(game));
-        }*/
         //Press F to make fullscreen (to do - put it as an option)
         if(Gdx.input.isKeyPressed(Input.Keys.F)) {
             if(game.fullscreen) {
@@ -157,10 +162,12 @@ public class PlayScreen implements Screen {
 
         for(int i=0; i<trapezi.size; i++){
             Trapez t = trapezi.get(i);
-            t.setDistance(t.getDistance()-scrollSpeed*dt);
-            if(t.getDistance() <= 0){
-                t.setSize(t.getSize()-scrollSpeed*dt);
-                t.setDistance(t.getDistance()+scrollSpeed*dt);
+            t.setDistance(t.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
+            float distanceDiff;
+            if(t.getDistance() <= middleHexagon[1].getR()){
+                distanceDiff = Math.abs(t.getDistance()-middleHexagon[1].getR());
+                t.setSize(t.getStartSize()-distanceDiff);
+                t.setDistance(t.getDistance()+distanceDiff);
             }
             if(t.getSize() <= 0)
                 t.setSize(0);
@@ -168,8 +175,7 @@ public class PlayScreen implements Screen {
         boolean collidedLeft = false;
         boolean collidedRight = false;
         for(Trapez t:trapezi){
-            if(Intersector.intersectPolygons(new FloatArray(t.getPoints()), new FloatArray(pointer.getPoints()))){
-
+            if(Intersector.intersectPolygons(t.getFloatArray(), pointer.getFloatArray())){
                 Vector pointerVector;
                 Vector trapezVector;
                 //float trapezAngle = angle+(float)360/numberOfSides*t.getPosition();
@@ -204,13 +210,13 @@ public class PlayScreen implements Screen {
         angle+=rotateSpeed*dt;
         angle=angle%360;
 
-        if(!(tiltRatio < 2 && tiltRatio >= 1)){ //tilt the screen up and down
+        /*if(!(tiltRatio < 2 && tiltRatio >= 1)){ //tilt the screen up and down
             tiltRatioInc = !tiltRatioInc;
         }
         if(tiltRatioInc)
             tiltRatio+=0.3f*dt;
         else
-            tiltRatio-=0.3f*dt;
+            tiltRatio-=0.3f*dt;*/
         //tiltRatio = 2;
     }
     private void drawBackground(){
@@ -241,9 +247,10 @@ public class PlayScreen implements Screen {
         }
     }
     private void drawEquilateralPolygon(Polygon p, int n, int r, float x, float y, int color, float startAngle){
-        for(int i=0; i<p.xPoints.length; i++) {
-            p.xPoints[i] = (float) (x + Math.cos(Math.toRadians(startAngle + (360f / p.xPoints.length) * i)) * r);
-            p.yPoints[i] = (float) (y + Math.sin(Math.toRadians(startAngle + (360f / p.xPoints.length) * i)) * r / tiltRatio);
+        for(int i=0; i<n; i++) {
+            double segment = Math.toRadians(startAngle + (360f / n) * i);
+            p.xPoints[i] = (float) (x + Math.cos(segment) * r);
+            p.yPoints[i] = (float) (y + Math.sin(segment) * r / tiltRatio);
         }
         drawPolygon(p.getPoints(), color);
     }
@@ -305,8 +312,10 @@ public class PlayScreen implements Screen {
 
     public void drawInfo(){
         long passedTime = getPassedTime();
-        long seconds = passedTime/1000000000; //conversion from nanoseconds to seconds
-        long milliseconds = (passedTime-seconds*1000000000)/100000000;
+        if(levelTimestamp < 1) {
+            seconds = passedTime / 1000000000; //conversion from nanoseconds to seconds
+            milliseconds = (passedTime - seconds * 1000000000) / 100000000;
+        }
         drawScreenBox(true,200, 80, 40);
         drawScreenBox(true,400, 50, 20);
         drawScreenBox(false,300, 50, 20);

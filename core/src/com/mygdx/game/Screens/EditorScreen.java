@@ -10,14 +10,12 @@ import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.EarClippingTriangulator;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
-import com.mygdx.game.Objects.Circle;
-import com.mygdx.game.Objects.Point;
-import com.mygdx.game.Objects.Polygon;
-import com.mygdx.game.Objects.Trapez;
+import com.mygdx.game.Objects.*;
 
 public class EditorScreen implements Screen {
 
@@ -41,11 +39,13 @@ public class EditorScreen implements Screen {
     //Objects that exist on the screen
     private Polygon[] middleHexagon; //Hexagon in the middle of the screen (2 of them because the bigger one is the outline)
     private Array<Trapez> trapezi; //Obstacles (Array is Libgdx's equivalent to ArrayList)
+    private Trapez tlast;
 
     //variables to create game diversity
     private short numberOfSides;
     private float angle;
     private float rotateSpeed;
+    private float scrollSpeed;
     private float tiltRatio;
     private boolean tiltRatioInc;
     private int [] colors;
@@ -64,7 +64,7 @@ public class EditorScreen implements Screen {
 
     public EditorScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 6;
+        numberOfSides = 9;
         tiltRatio = 1;
         tiltRatioInc = true;
         dragging = false;
@@ -72,7 +72,8 @@ public class EditorScreen implements Screen {
 
         //variables that scale with delta
         rotateSpeed = 0;
-        levelTimestamp = 0.5f;
+        scrollSpeed = 200;
+        //levelTimestamp = 0.5f;
         timestampSpeed = 0.2f;
 
         this.game = game;
@@ -103,11 +104,11 @@ public class EditorScreen implements Screen {
         }
 
         trapezi = new Array<>();
-        trapezi.add(new Trapez(300, 600, 2));
-        trapezi.add(new Trapez(300, 1400,0));
+        //trapezi.add(new Trapez(300, 600, 2));
+        /*trapezi.add(new Trapez(300, 1400,0));
         trapezi.add(new Trapez(700, 1800,3));
         trapezi.add(new Trapez(500, 2500,6));
-        trapezi.add(new Trapez(800, 3100,3));
+        trapezi.add(new Trapez(800, 3100,3));*/
 
         //Set the colors for the game - these can be changed later (fade)
         colors = new int[5];
@@ -128,8 +129,10 @@ public class EditorScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         drawBackground();
-        for(Trapez t:trapezi)
-            drawTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition(), 0xFFFFFFFF);
+        for(Trapez t:trapezi) {
+            initTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition());
+            drawPolygon(t.getPoints(), 0xFFFFFFFF);
+        }
         drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[1].getR()+10, center.x, center.y, colors[0], angle);
         drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y, colors[1], angle);
         drawInfo();
@@ -140,6 +143,10 @@ public class EditorScreen implements Screen {
         dt = delta;
         mouse.x = Gdx.input.getX();
         mouse.y = viewport.getWorldHeight()-Gdx.input.getY();
+        if(trapezi.isEmpty())
+            tlast = new Trapez(0, 0, 0);
+        else
+            tlast = trapezi.get(trapezi.size - 1);
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
             dispose();
         if(Gdx.input.isKeyJustPressed(Input.Keys.S)) {
@@ -154,11 +161,41 @@ public class EditorScreen implements Screen {
                 dragging = true;
                 distanceFromMouse = mouse.x - progressIndicator.getX();
             }
-            if(placing){
-                Trapez tlast = trapezi.get(trapezi.size-1);
+            if(placing && !progressIndicator.intersects(mouse)){
+                //We have to find out what position is our new trapez going to have
+                Vector mouseVector = new Vector(center, mouse);
+                Vector v1 = new Vector(center, new Point(middleHexagon[0].getXPoints()[0], middleHexagon[0].getYPoints()[0]));
+                int position;
+
+                if(mouse.y >= center.y)
+                    position = (int)((mouseVector.getAngle(v1))/(Math.PI*2/numberOfSides));
+                else
+                    position = (int)((-mouseVector.getAngle(v1))/(Math.PI*2/numberOfSides));
+                if(position == 0 && mouse.y <= center.y) {
+                    position = numberOfSides - 1;
+                }
+                if(position < 0)
+                    position += numberOfSides-1;
+
+                boolean intersects = false;
                 float mouseDistance = mouse.distanceFrom(center);
-                trapezi.insert(0, new Trapez(300, (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp+mouseDistance/2, 1));
-                //t.setDistance(t.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
+                Trapez nt = new Trapez(300, (tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouseDistance - 150, position);;
+                //nov trapez še updatamo glede na trenutno stanje igre
+                nt.setDistance(nt.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
+                initTrapez(nt, nt.getDistance(), nt.getSize(), angle + (float) 360 / numberOfSides * nt.getPosition());
+                for(Trapez t:trapezi){
+                    if (nt.getPosition() == t.getPosition() && Intersector.intersectPolygons(nt.getFloatArray(), t.getFloatArray()))
+                        intersects = true;
+                }
+                if(!intersects){
+                    if(nt.getDistance() > tlast.getDistance()){
+                        trapezi.add(nt);
+                        nt.setDistance(nt.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
+                    }
+                    else
+                        trapezi.insert(0, nt);
+                    System.out.println(trapezi.size);
+                }
             }
         }
         if(!Gdx.input.isButtonPressed(Input.Buttons.LEFT))
@@ -181,8 +218,6 @@ public class EditorScreen implements Screen {
 
         for(int i=0; i<trapezi.size; i++){
             Trapez t = trapezi.get(i);
-            Trapez tlast = trapezi.get(trapezi.size-1);
-            //t.setDistance(t.getDistance()-scrollSpeed*dt);
             t.setDistance(t.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
             float distanceDiff;
             if(t.getDistance() <= middleHexagon[1].getR()){
@@ -234,13 +269,14 @@ public class EditorScreen implements Screen {
         }
     }
     private void drawEquilateralPolygon(Polygon p, int n, int r, float x, float y, int color, float startAngle){
-        for(int i=0; i<p.xPoints.length; i++) {
-            p.xPoints[i] = (float) (x + Math.cos(Math.toRadians(startAngle + (360f / p.xPoints.length) * i)) * r);
-            p.yPoints[i] = (float) (y + Math.sin(Math.toRadians(startAngle + (360f / p.xPoints.length) * i)) * r / tiltRatio);
+        for(int i=0; i<n; i++) {
+            double segment = Math.toRadians(startAngle + (360f / n) * i);
+            p.xPoints[i] = (float) (x + Math.cos(segment) * r);
+            p.yPoints[i] = (float) (y + Math.sin(segment) * r / tiltRatio);
         }
         drawPolygon(p.getPoints(), color);
     }
-    private void drawTrapez(Polygon p, double distance, double size, double startAngle, int color){
+    private void initTrapez(Polygon p, double distance, double size, double startAngle){
         p.xPoints = new float[4];
         float x = center.x;
         p.xPoints[0] = (float)(x + distance*Math.cos(Math.toRadians(startAngle)));
@@ -254,8 +290,6 @@ public class EditorScreen implements Screen {
         p.yPoints[1] = (float)(y + distance/tiltRatio*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
         p.yPoints[3] = (float)(y + (distance+size)/tiltRatio*Math.sin(Math.toRadians(startAngle)));
         p.yPoints[2] = (float)(y + (distance+size)/tiltRatio*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
-
-        drawPolygon(p.getPoints(), color);
     }
 
     //draws a box on a side of the screen (left or right) - boxOffset tells the difference between top and bottom lines of a trapezium
@@ -311,8 +345,23 @@ public class EditorScreen implements Screen {
     }
 
     public void drawInfo(){
-        drawScreenBox(false,200, 50, 20);
+        drawScreenBox(false,200, 50, 40);
         drawText("Editor", 28, 10, viewport.getWorldHeight()-8);
+        drawScreenBox(true,280, 50, 40);
+        drawScreenBox(true,180, 100, 80);
+        drawText("Length:", 28, viewport.getWorldWidth()-265, viewport.getWorldHeight()-8);
+        //System.out.println(getLevelLength());
+        /*if(seconds >= 10)
+            drawText(""+seconds, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
+        else
+            drawText("0"+seconds, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
+        drawText("."+milliseconds, 20, viewport.getWorldWidth()-65, viewport.getWorldHeight()-43);*/
+    }
+
+    public float getLevelLength(){
+        if(trapezi.isEmpty())
+            return 0;
+        else return tlast.getStartDistance()/scrollSpeed;
     }
 
     @Override

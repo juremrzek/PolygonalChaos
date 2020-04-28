@@ -9,10 +9,12 @@ public class Polygon {
     private int r;
     private float centerX;
     private float centerY;
+    private FloatArray floatArray;
     public Polygon(float[] xPoints, float[] yPoints, int r){
         this.xPoints = xPoints;
         this.yPoints = yPoints;
         this.r = r;
+        floatArray = new FloatArray();
     }
     public Polygon(float[] xPoints, float[] yPoints){
         this.xPoints = xPoints;
