@@ -7,4 +7,10 @@ public class Point {
         this.x = x;
         this.y = y;
     }
+    public Point(){
+
+    }
+    public float distanceFrom(Point p){
+        return (float)Math.sqrt((this.x-p.x)*(this.x-p.x) + (this.y-p.y)*(this.y-p.y));
+    }
 }

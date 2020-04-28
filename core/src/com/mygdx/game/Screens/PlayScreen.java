@@ -204,13 +204,13 @@ public class PlayScreen implements Screen {
         angle+=rotateSpeed*dt;
         angle=angle%360;
 
-        /*if(!(tiltRatio < 2 && tiltRatio >= 1)){ //tilt the screen up and down
+        if(!(tiltRatio < 2 && tiltRatio >= 1)){ //tilt the screen up and down
             tiltRatioInc = !tiltRatioInc;
         }
         if(tiltRatioInc)
             tiltRatio+=0.3f*dt;
         else
-            tiltRatio-=0.3f*dt;*/
+            tiltRatio-=0.3f*dt;
         //tiltRatio = 2;
     }
     private void drawBackground(){

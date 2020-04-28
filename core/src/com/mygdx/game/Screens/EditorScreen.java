@@ -8,11 +8,13 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
+import com.mygdx.game.Objects.Circle;
 import com.mygdx.game.Objects.Point;
 import com.mygdx.game.Objects.Polygon;
 import com.mygdx.game.Objects.Trapez;
@@ -27,6 +29,7 @@ public class EditorScreen implements Screen {
     private Pixmap pixmap;
     private SpriteBatch batch;
     private BitmapFont font;
+    private ShapeRenderer sr;
 
     //Objects to draw polygons
     private PolygonSprite poly;
@@ -48,8 +51,15 @@ public class EditorScreen implements Screen {
     private int [] colors;
     private float levelTimestamp;
     private float timestampSpeed;
+    private float progressBarWidth;
+    private float progressBarHeight;
+    private boolean dragging;
+    private float distanceFromMouse;
+    private boolean placing;
 
     private Point center;
+    private Point mouse;
+    private Circle progressIndicator;
     private Music music;
 
     public EditorScreen(MyGdxGame game){
@@ -57,10 +67,12 @@ public class EditorScreen implements Screen {
         numberOfSides = 6;
         tiltRatio = 1;
         tiltRatioInc = true;
+        dragging = false;
+        placing = true;
 
         //variables that scale with delta
         rotateSpeed = 0;
-        levelTimestamp = 0;
+        levelTimestamp = 0.5f;
         timestampSpeed = 0.2f;
 
         this.game = game;
@@ -70,6 +82,8 @@ public class EditorScreen implements Screen {
         batch = new SpriteBatch();
         font = new BitmapFont(Gdx.files.internal("font.fnt"));
         font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+        sr = new ShapeRenderer();
+        sr.setColor(Color.BLACK);
 
         music = Gdx.audio.newMusic(Gdx.files.internal("shaman_gravity.mp3"));
         //music.setVolume(0.1f);
@@ -77,6 +91,10 @@ public class EditorScreen implements Screen {
 
         //Set the center of the screen as a point
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
+        mouse = new Point(Gdx.input.getX(), Gdx.input.getX());
+        progressBarWidth = 600f;
+        progressBarHeight = 20f;
+        progressIndicator = new Circle(center.x-progressBarWidth/2, viewport.getWorldHeight()-50+progressBarHeight/2, progressBarHeight*1.1f);
 
         middleHexagon = new Polygon[2];
         for(int i=0; i<middleHexagon.length; i++) {
@@ -88,6 +106,8 @@ public class EditorScreen implements Screen {
         trapezi.add(new Trapez(300, 600, 2));
         trapezi.add(new Trapez(300, 1400,0));
         trapezi.add(new Trapez(700, 1800,3));
+        trapezi.add(new Trapez(500, 2500,6));
+        trapezi.add(new Trapez(800, 3100,3));
 
         //Set the colors for the game - these can be changed later (fade)
         colors = new int[5];
@@ -113,27 +133,40 @@ public class EditorScreen implements Screen {
         drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[1].getR()+10, center.x, center.y, colors[0], angle);
         drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y, colors[1], angle);
         drawInfo();
+        drawProgressBar(progressBarWidth, progressBarHeight);
         update(Gdx.graphics.getDeltaTime());
     }
     private void update(float delta){
         dt = delta;
+        mouse.x = Gdx.input.getX();
+        mouse.y = viewport.getWorldHeight()-Gdx.input.getY();
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
             dispose();
         if(Gdx.input.isKeyJustPressed(Input.Keys.S)) {
             game.setScreen(new PlayScreen(game));
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.D)) {
-            if(levelTimestamp<1)
-                levelTimestamp += timestampSpeed*dt;
-            else
-                levelTimestamp = 1;
+        if(Gdx.input.isKeyPressed(Input.Keys.D))
+            progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
+        if(Gdx.input.isKeyPressed(Input.Keys.A))
+            progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
+        if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+            if(!dragging && mouse.distanceFrom(progressIndicator.getCenter()) <= progressIndicator.getR()){
+                dragging = true;
+                distanceFromMouse = mouse.x - progressIndicator.getX();
+            }
+            if(placing){
+                Trapez tlast = trapezi.get(trapezi.size-1);
+                float mouseDistance = mouse.distanceFrom(center);
+                trapezi.insert(0, new Trapez(300, (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp+mouseDistance/2, 1));
+                //t.setDistance(t.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
+            }
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.A)) {
-            if(levelTimestamp>0)
-                levelTimestamp -= timestampSpeed*dt;
-            else
-                levelTimestamp = 0;
+        if(!Gdx.input.isButtonPressed(Input.Buttons.LEFT))
+            dragging = false;
+        if(dragging){
+            progressIndicator.setX(mouse.x-distanceFromMouse);
         }
+
         //Press F to make fullscreen (to do - put it as an option)
         if(Gdx.input.isKeyPressed(Input.Keys.F)) {
             if(game.fullscreen) {
@@ -249,7 +282,6 @@ public class EditorScreen implements Screen {
         background = new Polygon(backgroundPointsX, backgroundPointsY);
         drawPolygon(background.getPoints(), 0x000000FF);
     }
-
     public void drawText(String text, float size, float x, float y) {
         batch.setProjectionMatrix(camera.combined); //so that coordinates are relative to camera (to the viewport)
         batch.begin();
@@ -257,11 +289,30 @@ public class EditorScreen implements Screen {
         font.draw(batch, text, x, y);
         batch.end();
     }
+    public void drawProgressBar(float width, float height){
+        sr.setColor(Color.BLACK);
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        sr.setProjectionMatrix(camera.combined);
+        sr.rect(center.x-width/2, viewport.getWorldHeight()-50, width, height);
+        sr.circle(center.x-width/2, viewport.getWorldHeight()-50+height/2, height/2);
+        sr.circle(center.x+width/2, viewport.getWorldHeight()-50+height/2, height/2);
+        if(progressIndicator.getX() > center.x+width/2)
+            progressIndicator.setX(center.x+width/2);
+        if(progressIndicator.getX() < center.x-width/2)
+            progressIndicator.setX(center.x-width/2);
+        levelTimestamp = (progressIndicator.getX()-(center.x-width/2))/((center.x+width/2)-(center.x-width/2));
+        sr.circle(progressIndicator.getX(), progressIndicator.getY(), progressIndicator.getR());
+        sr.end();
 
+        sr.setColor(Color.WHITE);
+        sr.begin(ShapeRenderer.ShapeType.Line);
+        sr.circle(progressIndicator.getX(), progressIndicator.getY(), progressIndicator.getR());
+        sr.end();
+    }
 
     public void drawInfo(){
-        drawScreenBox(false,300, 50, 20);
-        drawText("Level 1", 32, 10, viewport.getWorldHeight()-8);
+        drawScreenBox(false,200, 50, 20);
+        drawText("Editor", 28, 10, viewport.getWorldHeight()-8);
     }
 
     @Override
@@ -306,6 +357,7 @@ public class EditorScreen implements Screen {
         game.dispose();
         batch.dispose();
         font.dispose();
+        sr.dispose();
         //music.stop();
         music.dispose();
     }

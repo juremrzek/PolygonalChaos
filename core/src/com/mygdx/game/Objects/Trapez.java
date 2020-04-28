@@ -6,12 +6,15 @@ public class Trapez extends Polygon {
     private float position;
     private float startDistance;
     private float startSize;
-    public Trapez(int size, int distance, int position) {
+    public Trapez(float size, float distance, int position) {
         this.size = size;
         this.startSize = size;
         this.distance = distance;
         this.startDistance = distance;
         this.position = position;
+    }
+    public Trapez(){
+
     }
     public float getSize(){
         return size;
