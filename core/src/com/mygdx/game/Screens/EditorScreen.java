@@ -188,13 +188,16 @@ public class EditorScreen implements Screen {
                         intersects = true;
                 }
                 if(!intersects){
-                    if(nt.getDistance() > tlast.getDistance()){
+                    if(nt.getStartDistance() > tlast.getStartDistance()){
                         trapezi.add(nt);
-                        nt.setDistance(nt.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
+                        if(trapezi.size > 1){
+                            //if we place trapez after the last one, we extend the length of the whole level
+                            progressIndicator.setX(progressBarWidth*tlast.getStartDistance()/nt.getStartDistance()*levelTimestamp+center.x-progressBarWidth/2);
+                        }
+                        System.out.println(levelTimestamp);
                     }
                     else
                         trapezi.insert(0, nt);
-                    System.out.println(trapezi.size);
                 }
             }
         }
