@@ -17,9 +17,12 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Objects.*;
 
+import java.io.*;
+
 public class EditorScreen implements Screen {
 
     private float dt; //deltatime
+    private String levelName;
 
     private MyGdxGame game;
     private FitViewport viewport;
@@ -64,11 +67,12 @@ public class EditorScreen implements Screen {
 
     public EditorScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 9;
+        numberOfSides = 6;
         tiltRatio = 1;
         tiltRatioInc = true;
         dragging = false;
         placing = true;
+        levelName = "TestLevel";
 
         //variables that scale with delta
         rotateSpeed = 0;
@@ -81,12 +85,12 @@ public class EditorScreen implements Screen {
         viewport = new FitViewport(1280, 900, camera);
 
         batch = new SpriteBatch();
-        font = new BitmapFont(Gdx.files.internal("font.fnt"));
+        font = new BitmapFont(Gdx.files.internal("fonts/font.fnt"));
         font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         sr = new ShapeRenderer();
         sr.setColor(Color.BLACK);
 
-        music = Gdx.audio.newMusic(Gdx.files.internal("shaman_gravity.mp3"));
+        music = Gdx.audio.newMusic(Gdx.files.internal("music/shaman_gravity.mp3"));
         //music.setVolume(0.1f);
         //music.play();
 
@@ -144,12 +148,13 @@ public class EditorScreen implements Screen {
         mouse.x = Gdx.input.getX();
         mouse.y = viewport.getWorldHeight()-Gdx.input.getY();
         if(trapezi.isEmpty())
-            tlast = new Trapez(0, 0, 0);
+            tlast = new Trapez(0, 1000, 0);
         else
             tlast = trapezi.get(trapezi.size - 1);
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
             dispose();
         if(Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+            exportLevel();
             game.setScreen(new PlayScreen(game));
         }
         if(Gdx.input.isKeyPressed(Input.Keys.D))
@@ -194,7 +199,6 @@ public class EditorScreen implements Screen {
                             //if we place trapez after the last one, we extend the length of the whole level
                             progressIndicator.setX(progressBarWidth*tlast.getStartDistance()/nt.getStartDistance()*levelTimestamp+center.x-progressBarWidth/2);
                         }
-                        System.out.println(levelTimestamp);
                     }
                     else
                         trapezi.insert(0, nt);
@@ -206,7 +210,6 @@ public class EditorScreen implements Screen {
         if(dragging){
             progressIndicator.setX(mouse.x-distanceFromMouse);
         }
-
         //Press F to make fullscreen (to do - put it as an option)
         if(Gdx.input.isKeyPressed(Input.Keys.F)) {
             if(game.fullscreen) {
@@ -218,6 +221,11 @@ public class EditorScreen implements Screen {
                 game.fullscreen = true;
             }
         }
+        if(Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+            File f = new File("core/assets/levels/" + levelName + ".lvl");
+            if(f.exists())
+                importLevel(f);
+        }
 
         for(int i=0; i<trapezi.size; i++){
             Trapez t = trapezi.get(i);
@@ -227,6 +235,9 @@ public class EditorScreen implements Screen {
                  distanceDiff = Math.abs(t.getDistance()-middleHexagon[1].getR());
                  t.setSize(t.getStartSize()-distanceDiff);
                  t.setDistance(t.getDistance()+distanceDiff);
+            }
+            else{
+                t.setSize(t.getStartSize());
             }
             if(t.getSize() <= 0)
                 t.setSize(0);
@@ -365,6 +376,41 @@ public class EditorScreen implements Screen {
         if(trapezi.isEmpty())
             return 0;
         else return tlast.getStartDistance()/scrollSpeed;
+    }
+    public void exportLevel() {
+        try {
+            FileOutputStream fos = new FileOutputStream("core/assets/levels/" + levelName + ".lvl");
+            ObjectOutputStream ous = new ObjectOutputStream(fos);
+            for(Trapez t:trapezi) {
+                ous.writeObject(t);
+            }
+            ous.close();
+            System.out.println("Level exported to core/assets/levels");
+        } catch (Exception e) {
+            System.out.println("An error has occurred");
+            e.printStackTrace();
+        }
+    }
+
+    public void importLevel(File levelFile){
+        try {
+            FileInputStream fin = new FileInputStream(levelFile);
+            ObjectInputStream ois = new ObjectInputStream(fin);
+            trapezi = new Array<>();
+            while(ois.available() != -1){
+                Object t = ois.readObject();
+                trapezi.add((Trapez)t);
+            }
+            System.out.println("Level successfully imported");
+            ois.close();
+
+        }catch(EOFException ignore) { //ta exception nam samo pove, da je konec datoteke
+        }catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        finally{
+            System.out.println(trapezi.size);
+        }
     }
 
     @Override

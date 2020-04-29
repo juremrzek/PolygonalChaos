@@ -1,6 +1,8 @@
 package com.mygdx.game.Objects;
 
-public class Trapez extends Polygon {
+import java.io.Serializable;
+
+public class Trapez extends Polygon implements Serializable {
     private float size;
     private float distance;
     private float position;

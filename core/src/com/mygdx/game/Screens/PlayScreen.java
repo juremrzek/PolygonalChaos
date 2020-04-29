@@ -20,6 +20,11 @@ import com.mygdx.game.Objects.Trapez;
 import com.badlogic.gdx.math.Intersector;
 import com.mygdx.game.Objects.Vector;
 
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.ObjectInputStream;
+
 public class PlayScreen implements Screen {
 
     private float dt; //deltatime
@@ -57,6 +62,7 @@ public class PlayScreen implements Screen {
     private long startTime; //time when the screen was shown
     long seconds;
     long milliseconds;
+    String levelName;
 
     private float pointerAngle;
     private float pointerRotationR;
@@ -67,12 +73,14 @@ public class PlayScreen implements Screen {
 
     public PlayScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 8;
+        numberOfSides = 6;
         tiltRatio = 1;
         tiltRatioInc = true;
         startTime = System.nanoTime();
         seconds = 0;
         milliseconds = 0;
+        levelName = "TestLevel";
+        levelTimestamp = 0;
 
         //variables that scale with delta
         rotateSpeed = 200;
@@ -83,12 +91,12 @@ public class PlayScreen implements Screen {
         viewport = new FitViewport(1280, 900, camera);
 
         batch = new SpriteBatch();
-        font = new BitmapFont(Gdx.files.internal("font.fnt"));
+        font = new BitmapFont(Gdx.files.internal("fonts/font.fnt"));
         font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         sr = new ShapeRenderer();
         sr.setColor(Color.BLACK);
 
-        music = Gdx.audio.newMusic(Gdx.files.internal("shaman_gravity.mp3"));
+        music = Gdx.audio.newMusic(Gdx.files.internal("music/shaman_gravity.mp3"));
         //music.setVolume(0.1f);
         //music.play();
 
@@ -110,10 +118,9 @@ public class PlayScreen implements Screen {
             pointer.yPoints[i] = (float) (pointer.getCenterY() + Math.sin(Math.toRadians(pointerAngle + (360f / pointer.xPoints.length) * i)) * pointer.getR() / tiltRatio);
         }
 
-        trapezi = new Array<>();
-        trapezi.add(new Trapez(300, 600, 2));
-        trapezi.add(new Trapez(300, 1400,0));
-        trapezi.add(new Trapez(700, 1800,3));
+        File f = new File("core/assets/levels/" + levelName + ".lvl");
+        if(f.exists())
+            importLevel(f);
 
         //Set the colors for the game - these can be changed later (fade)
         colors = new int[5];
@@ -145,7 +152,9 @@ public class PlayScreen implements Screen {
     private void update(float delta){
         dt = delta;
         tlast = trapezi.get(trapezi.size - 1);
-        levelTimestamp += scrollSpeed*dt;
+        if(levelTimestamp < 1)
+            levelTimestamp += scrollSpeed*dt;
+
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
             dispose();
         //Press F to make fullscreen (to do - put it as an option)
@@ -159,6 +168,9 @@ public class PlayScreen implements Screen {
                 game.fullscreen = true;
             }
         }
+        if(Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+            game.setScreen(new EditorScreen(game));
+        }
 
         for(int i=0; i<trapezi.size; i++){
             Trapez t = trapezi.get(i);
@@ -168,6 +180,9 @@ public class PlayScreen implements Screen {
                 distanceDiff = Math.abs(t.getDistance()-middleHexagon[1].getR());
                 t.setSize(t.getStartSize()-distanceDiff);
                 t.setDistance(t.getDistance()+distanceDiff);
+            }
+            else {
+                t.setSize(t.getStartSize());
             }
             if(t.getSize() <= 0)
                 t.setSize(0);
@@ -326,6 +341,27 @@ public class PlayScreen implements Screen {
         else
             drawText("0"+seconds, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
         drawText("."+milliseconds, 20, viewport.getWorldWidth()-65, viewport.getWorldHeight()-43);
+    }
+
+    public void importLevel(File levelFile){
+        try {
+            FileInputStream fin = new FileInputStream(levelFile);
+            ObjectInputStream ois = new ObjectInputStream(fin);
+            trapezi = new Array<>();
+            while(ois.available() != -1){
+                Object t = ois.readObject();
+                trapezi.add((Trapez)t);
+            }
+            System.out.println("Level successfully imported");
+            ois.close();
+
+        }catch(EOFException ignored){ //ta exception nam samo pove, da je konec datoteke
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        finally{
+            System.out.println(trapezi.size);
+        }
     }
 
     @Override
