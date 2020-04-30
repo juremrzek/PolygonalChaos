@@ -16,11 +16,10 @@ import com.mygdx.game.Objects.*;
 
 import java.io.*;
 
-public class EditorScreen implements Screen {
+public class EditorScreen extends InputAdapter implements Screen {
 
     private float dt; //deltatime
     private String levelName;
-    private InputProcessor ip;
 
     private MyGdxGame game;
     private FitViewport viewport;
@@ -29,6 +28,7 @@ public class EditorScreen implements Screen {
     private SpriteBatch batch;
     private BitmapFont font;
     private ShapeRenderer sr;
+    private InputProcessor mouseListener;
 
     //Objects to draw polygons
     private PolygonSprite poly;
@@ -60,6 +60,7 @@ public class EditorScreen implements Screen {
     private float distanceFromTrapezToMouse;
     private boolean placing;
     private boolean dragging;
+    private float sizeOfNewTrapez;
 
     private Point center;
     private Point mouse;
@@ -75,8 +76,9 @@ public class EditorScreen implements Screen {
         movingTrapez = false;
         placing = true;
         dragging = true;
+        sizeOfNewTrapez = 100;
         levelName = "TestLevel";
-
+        Gdx.input.setInputProcessor(this);
 
         //variables that scale with delta
         rotateSpeed = 0;
@@ -110,13 +112,7 @@ public class EditorScreen implements Screen {
             middleHexagon[i] = new Polygon(new float[numberOfSides], new float[numberOfSides], 70);
             middleHexagon[i].setCenter(center.x, center.y);
         }
-
         trapezi = new Array<>();
-        //trapezi.add(new Trapez(300, 600, 2));
-        /*trapezi.add(new Trapez(300, 1400,0));
-        trapezi.add(new Trapez(700, 1800,3));
-        trapezi.add(new Trapez(500, 2500,6));
-        trapezi.add(new Trapez(800, 3100,3));*/
 
         //Set the colors for the game - these can be changed later (fade)
         colors = new int[5];
@@ -140,6 +136,9 @@ public class EditorScreen implements Screen {
         for(Trapez t:trapezi) {
             initTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition());
             drawPolygon(t.getPoints(), 0xFFFFFFFF);
+            if(t.isSelected()){
+                t.drawOutline(sr, Color.BLACK);
+            }
         }
         drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[1].getR()+10, center.x, center.y, colors[0], angle);
         drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y, colors[1], angle);
@@ -165,10 +164,7 @@ public class EditorScreen implements Screen {
             progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
         if(Gdx.input.isKeyPressed(Input.Keys.A))
             progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
-        if(ip.scrolled(1))
-            progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
-        if(ip.scrolled(-1))
-            progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
+
         if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
             if(!movingBar && mouse.distanceFrom(progressIndicator.getCenter()) <= progressIndicator.getR()){
                 movingBar = true;
@@ -176,26 +172,15 @@ public class EditorScreen implements Screen {
             }
             if(placing && !progressIndicator.intersects(mouse)){
                 //We have to find out what position is our new trapez going to have
-                Vector mouseVector = new Vector(center, mouse);
-                Vector v1 = new Vector(center, new Point(middleHexagon[0].getXPoints()[0], middleHexagon[0].getYPoints()[0]));
-                int position;
-
-                if(mouse.y >= center.y)
-                    position = (int)((mouseVector.getAngle(v1))/(Math.PI*2/numberOfSides));
-                else
-                    position = (int)((-mouseVector.getAngle(v1))/(Math.PI*2/numberOfSides));
-                if(position == 0 && mouse.y <= center.y) {
-                    position = numberOfSides - 1;
-                }
-                if(position < 0)
-                    position += numberOfSides-1;
 
                 boolean intersects = false;
-                float mouseDistance = mouse.distanceFrom(center);
-                Trapez nt = new Trapez(300, (tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouseDistance - 150, position);
-                //nov trapez še updatamo glede na trenutno stanje igre
-                nt.setDistance(nt.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
-                initTrapez(nt, nt.getDistance(), nt.getSize(), angle + (float) 360 / numberOfSides * nt.getPosition());
+
+                Trapez nt = new Trapez(sizeOfNewTrapez, (tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouse.distanceFrom(center), getMousePosition());
+                initTrapez(nt, nt.getDistance(), sizeOfNewTrapez, angle + (float) 360 / numberOfSides * nt.getPosition());
+                float mouseDistance = mouse.getDistanceFromTrapezSideToCenter(nt, center);
+
+                nt.setStartDistance((tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouseDistance - nt.getSize()/2);
+                initTrapez(nt, nt.getDistance(), sizeOfNewTrapez, angle + (float) 360 / numberOfSides * nt.getPosition());
                 for(Trapez t:trapezi){
                     if (nt.getPosition() == t.getPosition() && Intersector.intersectPolygons(nt.getFloatArray(), t.getFloatArray()))
                         intersects = true;
@@ -214,22 +199,35 @@ public class EditorScreen implements Screen {
             }
         }
         if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
-            if(dragging){
-                for(Trapez t:trapezi){
+            if(dragging && !movingBar){
+                for(int i=0; i<trapezi.size; i++){
+                    Trapez t = trapezi.get(i);
                     if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, mouse.x, mouse.y)){
                         if(!movingTrapez){
-                            Vector mouseVector = new Vector(mouse, center);
-                            distanceFromTrapezToMouse = (float)(mouseVector.getLength() - t.getDistance());
+                            distanceFromTrapezToMouse = mouse.distanceFrom(center) - t.getDistance();
                             movingTrapez = true;
+                            t.setSelected(true);
                         }
+                    }
+                    if(t.isSelected() && getMousePosition() == t.getPosition()) {
                         t.setStartDistance((tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouse.distanceFrom(center) - distanceFromTrapezToMouse);
-                        t.setDistance(t.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
+                        t.setDistance((tlast.getStartDistance() + tlast.getStartSize())*levelTimestamp);
+                        if(t.getStartDistance() > tlast.getStartDistance()){
+                            tlast = t;
+                            trapezi.removeValue(t, false);
+                            trapezi.add(t);
+                        }
+                    }
+                    else{
+                        t.setSelected(false);
                     }
                 }
             }
         }else{
             movingBar = false;
             movingTrapez = false;
+            for(Trapez t:trapezi)
+                t.setSelected(false);
         }
         if(movingBar){
             progressIndicator.setX(mouse.x-distanceFromProgressBarToMouse);
@@ -254,8 +252,8 @@ public class EditorScreen implements Screen {
         for(int i=0; i<trapezi.size; i++){
             Trapez t = trapezi.get(i);
             t.setDistance(t.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
-            float distanceDiff;
             if(t.getDistance() <= middleHexagon[1].getR()){
+                 float distanceDiff;
                  distanceDiff = Math.abs(t.getDistance()-middleHexagon[1].getR());
                  t.setSize(t.getStartSize()-distanceDiff);
                  t.setDistance(t.getDistance()+distanceDiff);
@@ -401,6 +399,22 @@ public class EditorScreen implements Screen {
             return 0;
         else return tlast.getStartDistance()/scrollSpeed;
     }
+    public int getMousePosition(){
+        int position;
+        Vector mouseVector = new Vector(center, mouse);
+        Vector v = new Vector(center, new Point(middleHexagon[0].getXPoints()[0], middleHexagon[0].getYPoints()[0]));
+        if(mouse.y >= center.y)
+            position = (int)((mouseVector.getAngle(v))/(Math.PI*2/numberOfSides));
+        else
+            position = (int)((-mouseVector.getAngle(v))/(Math.PI*2/numberOfSides));
+        if(position == 0 && mouse.y <= center.y) {
+            position = numberOfSides - 1;
+        }
+        if(position < 0)
+            position += numberOfSides-1;
+
+        return position;
+    }
     public void exportLevel() {
         try {
             FileOutputStream fos = new FileOutputStream("core/assets/levels/" + levelName + ".lvl");
@@ -453,6 +467,15 @@ public class EditorScreen implements Screen {
     public void hide() {
 
     }
+    @Override
+    public boolean scrolled(int amount){
+        if(amount == 1)
+            progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
+        if(amount == -1)
+            progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
+        return false;
+    }
+
     private void drawPolygon(float [] points, int color){
         pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(color);

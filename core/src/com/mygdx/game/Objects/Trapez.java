@@ -1,5 +1,8 @@
 package com.mygdx.game.Objects;
 
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+
 import java.io.Serializable;
 
 public class Trapez extends Polygon implements Serializable {
@@ -8,12 +11,14 @@ public class Trapez extends Polygon implements Serializable {
     private float position;
     private float startDistance;
     private float startSize;
+    private boolean isSelected;
     public Trapez(float size, float distance, int position) {
         this.size = size;
         this.startSize = size;
         this.distance = distance;
         this.startDistance = distance;
         this.position = position;
+        isSelected = false;
     }
     public Trapez(){
 
@@ -45,5 +50,18 @@ public class Trapez extends Polygon implements Serializable {
     public float getStartSize(){
         return startSize;
     }
-
+    public boolean isSelected(){
+        return isSelected;
+    }
+    public void setSelected(boolean b){
+        isSelected = b;
+    }
+    public void drawOutline(ShapeRenderer sr, Color color){
+        sr.setColor(color);
+        sr.begin(ShapeRenderer.ShapeType.Line);
+        for(int i=0; i<getPoints().length; i+=4){
+            sr.line(getPoints()[i], getPoints()[i+1], getPoints()[i+2], getPoints()[i+3]);
+        }
+        sr.end();
+    }
 }

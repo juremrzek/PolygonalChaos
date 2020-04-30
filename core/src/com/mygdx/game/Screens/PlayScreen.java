@@ -152,7 +152,7 @@ public class PlayScreen implements Screen {
     private void update(float delta){
         dt = delta;
         tlast = trapezi.get(trapezi.size - 1);
-        if(levelTimestamp < 1)
+        if(levelTimestamp <= 1)
             levelTimestamp += scrollSpeed*dt;
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
