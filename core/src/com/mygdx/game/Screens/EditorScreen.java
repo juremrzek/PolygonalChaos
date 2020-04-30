@@ -136,6 +136,8 @@ public class EditorScreen extends InputAdapter implements Screen {
         for(Trapez t:trapezi) {
             initTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition());
             drawPolygon(t.getPoints(), 0xFFFFFFFF);
+        }
+        for(Trapez t:trapezi){
             if(t.isSelected()){
                 t.drawOutline(sr, Color.BLACK);
             }
@@ -176,13 +178,14 @@ public class EditorScreen extends InputAdapter implements Screen {
                 boolean intersects = false;
 
                 Trapez nt = new Trapez(sizeOfNewTrapez, (tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouse.distanceFrom(center), getMousePosition());
-                initTrapez(nt, nt.getDistance(), sizeOfNewTrapez, angle + (float) 360 / numberOfSides * nt.getPosition());
+                initTrapez(nt, nt.getDistance(), nt.getSize(), angle + (float) 360 / numberOfSides * nt.getPosition());
                 float mouseDistance = mouse.getDistanceFromTrapezSideToCenter(nt, center);
 
                 nt.setStartDistance((tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouseDistance - nt.getSize()/2);
-                initTrapez(nt, nt.getDistance(), sizeOfNewTrapez, angle + (float) 360 / numberOfSides * nt.getPosition());
+                nt.setDistance(nt.getStartDistance()-((tlast.getStartDistance() + tlast.getStartSize())*levelTimestamp));
+                initTrapez(nt, nt.getDistance(), nt.getSize(), angle + (float) 360 / numberOfSides * nt.getPosition());
                 for(Trapez t:trapezi){
-                    if (nt.getPosition() == t.getPosition() && Intersector.intersectPolygons(nt.getFloatArray(), t.getFloatArray()))
+                    if(nt.getPosition() == t.getPosition() && Intersector.intersectPolygons(nt.getFloatArray(), t.getFloatArray()))
                         intersects = true;
                 }
                 if(!intersects){
@@ -195,6 +198,7 @@ public class EditorScreen extends InputAdapter implements Screen {
                     }
                     else
                         trapezi.insert(0, nt);
+                    System.out.println(trapezi.size);
                 }
             }
         }
@@ -211,7 +215,7 @@ public class EditorScreen extends InputAdapter implements Screen {
                     }
                     if(t.isSelected() && getMousePosition() == t.getPosition()) {
                         t.setStartDistance((tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouse.distanceFrom(center) - distanceFromTrapezToMouse);
-                        t.setDistance((tlast.getStartDistance() + tlast.getStartSize())*levelTimestamp);
+                        t.setDistance(t.getStartDistance()-((tlast.getStartDistance() + tlast.getStartSize())*levelTimestamp));
                         if(t.getStartDistance() > tlast.getStartDistance()){
                             tlast = t;
                             trapezi.removeValue(t, false);
