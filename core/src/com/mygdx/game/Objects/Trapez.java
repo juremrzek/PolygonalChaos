@@ -33,6 +33,9 @@ public class Trapez extends Polygon implements Serializable {
     public void setPosition(float position){
         this.position = position;
     }
+    public void setStartDistance(float distance){
+        this.startDistance = distance;
+    }
     public float getPosition(){
         return position;
     }
@@ -42,4 +45,5 @@ public class Trapez extends Polygon implements Serializable {
     public float getStartSize(){
         return startSize;
     }
+
 }

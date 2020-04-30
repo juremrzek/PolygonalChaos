@@ -45,6 +45,9 @@ public class Polygon {
     public float getCenterY(){
         return centerY;
     }
+    public Point getCenter(){
+        return new Point(centerX, centerY);
+    }
     public FloatArray getFloatArray(){
         return new FloatArray(getPoints());
     }

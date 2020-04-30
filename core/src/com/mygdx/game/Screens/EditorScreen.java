@@ -1,9 +1,6 @@
 package com.mygdx.game.Screens;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
@@ -23,6 +20,7 @@ public class EditorScreen implements Screen {
 
     private float dt; //deltatime
     private String levelName;
+    private InputProcessor ip;
 
     private MyGdxGame game;
     private FitViewport viewport;
@@ -56,9 +54,12 @@ public class EditorScreen implements Screen {
     private float timestampSpeed;
     private float progressBarWidth;
     private float progressBarHeight;
-    private boolean dragging;
-    private float distanceFromMouse;
+    private boolean movingBar;
+    private boolean movingTrapez;
+    private float distanceFromProgressBarToMouse;
+    private float distanceFromTrapezToMouse;
     private boolean placing;
+    private boolean dragging;
 
     private Point center;
     private Point mouse;
@@ -70,9 +71,12 @@ public class EditorScreen implements Screen {
         numberOfSides = 6;
         tiltRatio = 1;
         tiltRatioInc = true;
-        dragging = false;
+        movingBar = false;
+        movingTrapez = false;
         placing = true;
+        dragging = true;
         levelName = "TestLevel";
+
 
         //variables that scale with delta
         rotateSpeed = 0;
@@ -161,10 +165,14 @@ public class EditorScreen implements Screen {
             progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
         if(Gdx.input.isKeyPressed(Input.Keys.A))
             progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
+        if(ip.scrolled(1))
+            progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
+        if(ip.scrolled(-1))
+            progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
         if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-            if(!dragging && mouse.distanceFrom(progressIndicator.getCenter()) <= progressIndicator.getR()){
-                dragging = true;
-                distanceFromMouse = mouse.x - progressIndicator.getX();
+            if(!movingBar && mouse.distanceFrom(progressIndicator.getCenter()) <= progressIndicator.getR()){
+                movingBar = true;
+                distanceFromProgressBarToMouse = mouse.x - progressIndicator.getX();
             }
             if(placing && !progressIndicator.intersects(mouse)){
                 //We have to find out what position is our new trapez going to have
@@ -184,7 +192,7 @@ public class EditorScreen implements Screen {
 
                 boolean intersects = false;
                 float mouseDistance = mouse.distanceFrom(center);
-                Trapez nt = new Trapez(300, (tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouseDistance - 150, position);;
+                Trapez nt = new Trapez(300, (tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouseDistance - 150, position);
                 //nov trapez še updatamo glede na trenutno stanje igre
                 nt.setDistance(nt.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
                 initTrapez(nt, nt.getDistance(), nt.getSize(), angle + (float) 360 / numberOfSides * nt.getPosition());
@@ -205,10 +213,26 @@ public class EditorScreen implements Screen {
                 }
             }
         }
-        if(!Gdx.input.isButtonPressed(Input.Buttons.LEFT))
-            dragging = false;
-        if(dragging){
-            progressIndicator.setX(mouse.x-distanceFromMouse);
+        if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
+            if(dragging){
+                for(Trapez t:trapezi){
+                    if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, mouse.x, mouse.y)){
+                        if(!movingTrapez){
+                            Vector mouseVector = new Vector(mouse, center);
+                            distanceFromTrapezToMouse = (float)(mouseVector.getLength() - t.getDistance());
+                            movingTrapez = true;
+                        }
+                        t.setStartDistance((tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouse.distanceFrom(center) - distanceFromTrapezToMouse);
+                        t.setDistance(t.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
+                    }
+                }
+            }
+        }else{
+            movingBar = false;
+            movingTrapez = false;
+        }
+        if(movingBar){
+            progressIndicator.setX(mouse.x-distanceFromProgressBarToMouse);
         }
         //Press F to make fullscreen (to do - put it as an option)
         if(Gdx.input.isKeyPressed(Input.Keys.F)) {
@@ -407,9 +431,6 @@ public class EditorScreen implements Screen {
         }catch(EOFException ignore) { //ta exception nam samo pove, da je konec datoteke
         }catch (Exception ex) {
             ex.printStackTrace();
-        }
-        finally{
-            System.out.println(trapezi.size);
         }
     }
 
