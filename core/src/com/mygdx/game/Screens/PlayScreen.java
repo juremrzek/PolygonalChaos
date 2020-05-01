@@ -60,6 +60,7 @@ public class PlayScreen implements Screen {
     private int [] colors;
     private float levelTimestamp;
     private long startTime; //time when the screen was shown
+    private float timeStampSpeed;
     long seconds;
     long milliseconds;
     String levelName;
@@ -73,7 +74,7 @@ public class PlayScreen implements Screen {
 
     public PlayScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 6;
+        numberOfSides = 3;
         tiltRatio = 1;
         tiltRatioInc = true;
         startTime = System.nanoTime();
@@ -84,7 +85,7 @@ public class PlayScreen implements Screen {
 
         //variables that scale with delta
         rotateSpeed = 200;
-        scrollSpeed = 0.15f;
+        scrollSpeed = 200;
 
         this.game = game;
         camera = new OrthographicCamera();
@@ -95,6 +96,14 @@ public class PlayScreen implements Screen {
         font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         sr = new ShapeRenderer();
         sr.setColor(Color.BLACK);
+
+        File f = new File("core/assets/levels/" + levelName + ".lvl");
+        if(f.exists())
+            importLevel(f);
+        tlast = trapezi.get(trapezi.size - 1);
+        //timeStampSpeed = tlast.getDistance()/getLevelLength();
+        timeStampSpeed = scrollSpeed/tlast.getStartDistance();
+        System.out.println(timeStampSpeed);
 
         music = Gdx.audio.newMusic(Gdx.files.internal("music/shaman_gravity.mp3"));
         //music.setVolume(0.1f);
@@ -117,10 +126,6 @@ public class PlayScreen implements Screen {
             pointer.xPoints[i] = (float) (pointer.getCenterX() + Math.cos(Math.toRadians(pointerAngle + (360f / pointer.xPoints.length) * i)) * pointer.getR());
             pointer.yPoints[i] = (float) (pointer.getCenterY() + Math.sin(Math.toRadians(pointerAngle + (360f / pointer.xPoints.length) * i)) * pointer.getR() / tiltRatio);
         }
-
-        File f = new File("core/assets/levels/" + levelName + ".lvl");
-        if(f.exists())
-            importLevel(f);
 
         //Set the colors for the game - these can be changed later (fade)
         colors = new int[5];
@@ -153,7 +158,7 @@ public class PlayScreen implements Screen {
         dt = delta;
         tlast = trapezi.get(trapezi.size - 1);
         if(levelTimestamp <= 1)
-            levelTimestamp += scrollSpeed*dt;
+            levelTimestamp +=timeStampSpeed*dt;
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
             dispose();
@@ -362,6 +367,11 @@ public class PlayScreen implements Screen {
         finally{
             System.out.println(trapezi.size);
         }
+    }
+    public float getLevelLength(){
+        if(trapezi.isEmpty())
+            return 0;
+        else return tlast.getStartDistance()/scrollSpeed;
     }
 
     @Override

@@ -69,7 +69,7 @@ public class EditorScreen extends InputAdapter implements Screen {
 
     public EditorScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 6;
+        numberOfSides = 3;
         tiltRatio = 1;
         tiltRatioInc = true;
         movingBar = false;
@@ -145,7 +145,7 @@ public class EditorScreen extends InputAdapter implements Screen {
         drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[1].getR()+10, center.x, center.y, colors[0], angle);
         drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y, colors[1], angle);
         drawInfo();
-        drawProgressBar(progressBarWidth, progressBarHeight);
+        drawProgressBar(progressBarWidth, progressBarHeight, Color.BLACK);
         update(Gdx.graphics.getDeltaTime());
     }
     private void update(float delta){
@@ -216,11 +216,6 @@ public class EditorScreen extends InputAdapter implements Screen {
                     if(t.isSelected() && getMousePosition() == t.getPosition()) {
                         t.setStartDistance((tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouse.distanceFrom(center) - distanceFromTrapezToMouse);
                         t.setDistance(t.getStartDistance()-((tlast.getStartDistance() + tlast.getStartSize())*levelTimestamp));
-                        if(t.getStartDistance() > tlast.getStartDistance()){
-                            tlast = t;
-                            trapezi.removeValue(t, false);
-                            trapezi.add(t);
-                        }
                     }
                     else{
                         t.setSelected(false);
@@ -235,6 +230,13 @@ public class EditorScreen extends InputAdapter implements Screen {
         }
         if(movingBar){
             progressIndicator.setX(mouse.x-distanceFromProgressBarToMouse);
+        }
+        for(Trapez t:trapezi) {
+            if (t.getStartDistance() > tlast.getStartDistance()) {
+                tlast = t;
+                trapezi.removeValue(t, false);
+                trapezi.add(t);
+            }
         }
         //Press F to make fullscreen (to do - put it as an option)
         if(Gdx.input.isKeyPressed(Input.Keys.F)) {
@@ -363,8 +365,8 @@ public class EditorScreen extends InputAdapter implements Screen {
         font.draw(batch, text, x, y);
         batch.end();
     }
-    public void drawProgressBar(float width, float height){
-        sr.setColor(Color.BLACK);
+    public void drawProgressBar(float width, float height, Color color){
+        sr.setColor(color);
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.setProjectionMatrix(camera.combined);
         sr.rect(center.x-width/2, viewport.getWorldHeight()-50, width, height);
@@ -383,13 +385,23 @@ public class EditorScreen extends InputAdapter implements Screen {
         sr.circle(progressIndicator.getX(), progressIndicator.getY(), progressIndicator.getR());
         sr.end();
     }
+    public void drawCircle(float x, float y, float r, Color color){
+        sr.setColor(color);
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        sr.setProjectionMatrix(camera.combined);
+        sr.circle(x, y, r);
+        sr.end();
+    }
 
     public void drawInfo(){
-        drawScreenBox(false,200, 50, 40);
-        drawText("Editor", 28, 10, viewport.getWorldHeight()-8);
+        //drawScreenBox(false,200, 50, 40);
+        //drawText("Editor", 28, 10, viewport.getWorldHeight()-8);
         drawScreenBox(true,280, 50, 40);
         drawScreenBox(true,180, 100, 80);
         drawText("Length:", 28, viewport.getWorldWidth()-265, viewport.getWorldHeight()-8);
+        drawCircle(100, viewport.getScreenHeight()-60, 40, Color.BLACK);
+        drawCircle(230, viewport.getScreenHeight()-60, 40, Color.BLACK);
+
         //System.out.println(getLevelLength());
         /*if(seconds >= 10)
             drawText(""+seconds, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
