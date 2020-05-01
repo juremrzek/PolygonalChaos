@@ -36,4 +36,5 @@ public class Circle {
     public Point getCenter() {
         return new Point(x,y);
     }
+
 }

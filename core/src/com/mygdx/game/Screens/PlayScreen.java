@@ -60,7 +60,7 @@ public class PlayScreen implements Screen {
     private int [] colors;
     private float levelTimestamp;
     private long startTime; //time when the screen was shown
-    private float timeStampSpeed;
+    private float timestampSpeed;
     long seconds;
     long milliseconds;
     String levelName;
@@ -74,7 +74,7 @@ public class PlayScreen implements Screen {
 
     public PlayScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 3;
+        numberOfSides = 6;
         tiltRatio = 1;
         tiltRatioInc = true;
         startTime = System.nanoTime();
@@ -102,8 +102,8 @@ public class PlayScreen implements Screen {
             importLevel(f);
         tlast = trapezi.get(trapezi.size - 1);
         //timeStampSpeed = tlast.getDistance()/getLevelLength();
-        timeStampSpeed = scrollSpeed/tlast.getStartDistance();
-        System.out.println(timeStampSpeed);
+        timestampSpeed = scrollSpeed/tlast.getStartDistance();
+        System.out.println(timestampSpeed);
 
         music = Gdx.audio.newMusic(Gdx.files.internal("music/shaman_gravity.mp3"));
         //music.setVolume(0.1f);
@@ -158,7 +158,7 @@ public class PlayScreen implements Screen {
         dt = delta;
         tlast = trapezi.get(trapezi.size - 1);
         if(levelTimestamp <= 1)
-            levelTimestamp +=timeStampSpeed*dt;
+            levelTimestamp +=timestampSpeed*dt;
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
             dispose();
@@ -336,16 +336,27 @@ public class PlayScreen implements Screen {
             seconds = passedTime / 1000000000; //conversion from nanoseconds to seconds
             milliseconds = (passedTime - seconds * 1000000000) / 100000000;
         }
-        drawScreenBox(true,200, 80, 40);
-        drawScreenBox(true,400, 50, 20);
         drawScreenBox(false,300, 50, 20);
-        drawText("Level 1", 32, 10, viewport.getWorldHeight()-8);
-        drawText("Time:", 30, viewport.getWorldWidth()-390, viewport.getWorldHeight()-8);
+        String secondsString;
         if(seconds >= 10)
-            drawText(""+seconds, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
+            secondsString = ""+seconds;
         else
-            drawText("0"+seconds, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
+            secondsString = "0"+seconds;
+
+        if(seconds < 100){
+            drawScreenBox(true,400, 50, 20);
+            drawScreenBox(true,200, 80, 40);
+            drawText(secondsString, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
+            drawText("Time:", 30, viewport.getWorldWidth()-390, viewport.getWorldHeight()-8);
+        }
+        else{
+            drawScreenBox(true,460, 50, 20);
+            drawScreenBox(true,260, 80, 40);
+            drawText(secondsString, 48, viewport.getWorldWidth()-245, viewport.getWorldHeight()-15);
+            drawText("Time:", 30, viewport.getWorldWidth()-450, viewport.getWorldHeight()-8);
+        }
         drawText("."+milliseconds, 20, viewport.getWorldWidth()-65, viewport.getWorldHeight()-43);
+        drawText("Level 1", 32, 10, viewport.getWorldHeight()-8);
     }
 
     public void importLevel(File levelFile){

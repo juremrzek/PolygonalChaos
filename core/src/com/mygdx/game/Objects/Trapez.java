@@ -12,6 +12,7 @@ public class Trapez extends Polygon implements Serializable {
     private float startDistance;
     private float startSize;
     private boolean isSelected;
+    private boolean isDragging;
     public Trapez(float size, float distance, int position) {
         this.size = size;
         this.startSize = size;
@@ -19,6 +20,7 @@ public class Trapez extends Polygon implements Serializable {
         this.startDistance = distance;
         this.position = position;
         isSelected = false;
+        isDragging = false;
     }
     public Trapez(){
 
@@ -56,11 +58,21 @@ public class Trapez extends Polygon implements Serializable {
     public void setSelected(boolean b){
         isSelected = b;
     }
+    public boolean isDragging(){
+        return isDragging;
+    }
+    public void setDragging(boolean b){
+        isDragging = b;
+    }
+
     public void drawOutline(ShapeRenderer sr, Color color){
         sr.setColor(color);
         sr.begin(ShapeRenderer.ShapeType.Line);
-        for(int i=0; i<getPoints().length; i+=4){
-            sr.line(getPoints()[i], getPoints()[i+1], getPoints()[i+2], getPoints()[i+3]);
+        for(int i=0; i<getPoints().length/2; i++){
+            if(i<getPoints().length/2-1)
+                sr.rectLine(getXPoints()[i], getYPoints()[i], getXPoints()[i+1], getYPoints()[i+1], 1);
+            else
+                sr.rectLine(getXPoints()[i], getYPoints()[i], getXPoints()[0], getYPoints()[0], 1);
         }
         sr.end();
     }

@@ -1,15 +1,16 @@
 package com.mygdx.game.Screens;
 
-import com.badlogic.gdx.*;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Objects.*;
@@ -28,7 +29,7 @@ public class EditorScreen extends InputAdapter implements Screen {
     private SpriteBatch batch;
     private BitmapFont font;
     private ShapeRenderer sr;
-    private InputProcessor mouseListener;
+    private Icon[] icons;
 
     //Objects to draw polygons
     private PolygonSprite poly;
@@ -60,6 +61,7 @@ public class EditorScreen extends InputAdapter implements Screen {
     private float distanceFromTrapezToMouse;
     private boolean placing;
     private boolean dragging;
+    private boolean deleting;
     private float sizeOfNewTrapez;
 
     private Point center;
@@ -69,7 +71,7 @@ public class EditorScreen extends InputAdapter implements Screen {
 
     public EditorScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 3;
+        numberOfSides = 6;
         tiltRatio = 1;
         tiltRatioInc = true;
         movingBar = false;
@@ -83,12 +85,15 @@ public class EditorScreen extends InputAdapter implements Screen {
         //variables that scale with delta
         rotateSpeed = 0;
         scrollSpeed = 200;
-        //levelTimestamp = 0.5f;
-        timestampSpeed = 0.2f;
 
         this.game = game;
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
+
+        icons = new Icon[]{new Icon(60, viewport.getWorldHeight()-60, 35, "icons/drag.png", Color.BLACK),
+                new Icon(160, viewport.getWorldHeight()-60, 35, "icons/draw.png", Color.BLACK),
+                new Icon(260, viewport.getWorldHeight()-60, 35, "icons/delete.png", Color.BLACK)};
+                //new Icon(viewport.getWorldWidth()-60, 60, 35, "icons/save.png", Color.BLACK)};
 
         batch = new SpriteBatch();
         font = new BitmapFont(Gdx.files.internal("fonts/font.fnt"));
@@ -139,11 +144,16 @@ public class EditorScreen extends InputAdapter implements Screen {
         }
         for(Trapez t:trapezi){
             if(t.isSelected()){
-                t.drawOutline(sr, Color.BLACK);
+                t.drawOutline(sr, new Color(0x006400FF));
             }
         }
         drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[1].getR()+10, center.x, center.y, colors[0], angle);
         drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y, colors[1], angle);
+        for(Icon icon:icons)
+            if(icon.isSelected())
+                icon.setColor(new Color(0x006400FF));
+            else
+                icon.setColor(Color.BLACK);
         drawInfo();
         drawProgressBar(progressBarWidth, progressBarHeight, Color.BLACK);
         update(Gdx.graphics.getDeltaTime());
@@ -168,15 +178,27 @@ public class EditorScreen extends InputAdapter implements Screen {
             progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
 
         if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-            if(!movingBar && mouse.distanceFrom(progressIndicator.getCenter()) <= progressIndicator.getR()){
+            if(!movingBar && progressIndicator.intersects(mouse)){
                 movingBar = true;
                 distanceFromProgressBarToMouse = mouse.x - progressIndicator.getX();
             }
-            if(placing && !progressIndicator.intersects(mouse)){
+            //System.out.println(mouse.x + " " + icons[0].getX() +" "+ mouse.distanceFrom(new Point(icons[0].getX(), icons[0].getY())));
+            for(int i=0; i<icons.length; i++){
+                if(icons[i].intersects(mouse)){
+                    for(int j=0; j<icons.length; j++){
+                        if(i==j)
+                            icons[j].setSelected(true);
+                        else
+                            icons[j].setSelected(false);
+                    }
+                }
+                dragging = icons[0].isSelected();
+                placing = icons[1].isSelected();
+                deleting = icons[2].isSelected();
+            }
+            if(placing && !progressIndicator.intersects(mouse) && !icons[1].intersects(mouse)){
                 //We have to find out what position is our new trapez going to have
-
                 boolean intersects = false;
-
                 Trapez nt = new Trapez(sizeOfNewTrapez, (tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouse.distanceFrom(center), getMousePosition());
                 initTrapez(nt, nt.getDistance(), nt.getSize(), angle + (float) 360 / numberOfSides * nt.getPosition());
                 float mouseDistance = mouse.getDistanceFromTrapezSideToCenter(nt, center);
@@ -198,27 +220,43 @@ public class EditorScreen extends InputAdapter implements Screen {
                     }
                     else
                         trapezi.insert(0, nt);
-                    System.out.println(trapezi.size);
+                }
+            }
+            for(int i=0; i<trapezi.size; i++) {
+                Trapez t = trapezi.get(i);
+                if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, mouse.x, mouse.y)){
+                    for(int j=0; j<trapezi.size; j++){
+                        if(i==j)
+                            trapezi.get(j).setSelected(true);
+                        else
+                            trapezi.get(j).setSelected(false);
+                    }
                 }
             }
         }
         if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
             if(dragging && !movingBar){
-                for(int i=0; i<trapezi.size; i++){
-                    Trapez t = trapezi.get(i);
+                for(Trapez t:trapezi){
                     if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, mouse.x, mouse.y)){
                         if(!movingTrapez){
                             distanceFromTrapezToMouse = mouse.distanceFrom(center) - t.getDistance();
                             movingTrapez = true;
-                            t.setSelected(true);
+                            t.setDragging(true);
                         }
                     }
-                    if(t.isSelected() && getMousePosition() == t.getPosition()) {
+                    if(t.isDragging() && getMousePosition() == t.getPosition()) {
                         t.setStartDistance((tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + mouse.distanceFrom(center) - distanceFromTrapezToMouse);
                         t.setDistance(t.getStartDistance()-((tlast.getStartDistance() + tlast.getStartSize())*levelTimestamp));
                     }
                     else{
-                        t.setSelected(false);
+                        t.setDragging(false);
+                    }
+                }
+            }
+            if(deleting) {
+                for (int i = 0; i < trapezi.size; i++) {
+                    if(Intersector.isPointInPolygon(trapezi.get(i).getPoints(), 0, trapezi.get(i).getPoints().length, mouse.x, mouse.y)) {
+                        trapezi.removeIndex(i);
                     }
                 }
             }
@@ -226,7 +264,7 @@ public class EditorScreen extends InputAdapter implements Screen {
             movingBar = false;
             movingTrapez = false;
             for(Trapez t:trapezi)
-                t.setSelected(false);
+                t.setDragging(false);
         }
         if(movingBar){
             progressIndicator.setX(mouse.x-distanceFromProgressBarToMouse);
@@ -254,7 +292,13 @@ public class EditorScreen extends InputAdapter implements Screen {
             if(f.exists())
                 importLevel(f);
         }
-
+        if(Gdx.input.isKeyJustPressed(Input.Keys.FORWARD_DEL)){
+            for(int i=0; i<trapezi.size; i++){
+                if(trapezi.get(i).isSelected())
+                    trapezi.removeIndex(i);
+            }
+        }
+        timestampSpeed = scrollSpeed/tlast.getStartDistance();
         for(int i=0; i<trapezi.size; i++){
             Trapez t = trapezi.get(i);
             t.setDistance(t.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
@@ -393,22 +437,40 @@ public class EditorScreen extends InputAdapter implements Screen {
         sr.end();
     }
 
-    public void drawInfo(){
-        //drawScreenBox(false,200, 50, 40);
-        //drawText("Editor", 28, 10, viewport.getWorldHeight()-8);
-        drawScreenBox(true,280, 50, 40);
-        drawScreenBox(true,180, 100, 80);
-        drawText("Length:", 28, viewport.getWorldWidth()-265, viewport.getWorldHeight()-8);
-        drawCircle(100, viewport.getScreenHeight()-60, 40, Color.BLACK);
-        drawCircle(230, viewport.getScreenHeight()-60, 40, Color.BLACK);
-
-        //System.out.println(getLevelLength());
-        /*if(seconds >= 10)
-            drawText(""+seconds, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
+    public void drawInfo() {
+        double levelLength = Math.floor(getLevelLength() * 10) / 10;
+        String[] time = (levelLength + "").split("\\.");
+        int seconds = Integer.parseInt(time[0]);
+        int tenths = Integer.parseInt(time[1]);
+        String levelLengthString;
+        if (seconds < 10)
+            levelLengthString = "0" + seconds;
         else
-            drawText("0"+seconds, 48, viewport.getWorldWidth()-185, viewport.getWorldHeight()-15);
-        drawText("."+milliseconds, 20, viewport.getWorldWidth()-65, viewport.getWorldHeight()-43);*/
+            levelLengthString = "" + seconds;
+        levelLengthString += "." + tenths;
+
+        drawScreenBox(true, 280, 50, 40);
+        if (seconds < 100) {
+            drawScreenBox(true, 200, 100, 80);
+            drawText(levelLengthString, 25, viewport.getWorldWidth() - 195, viewport.getWorldHeight() - 55);
+        } else {
+            drawScreenBox(true, 230, 100, 80);
+            drawText(levelLengthString, 25, viewport.getWorldWidth() - 225, viewport.getWorldHeight() - 55);
+        }
+        drawText("Length:", 28, viewport.getWorldWidth() - 265, viewport.getWorldHeight() - 8);
+        drawText("sec", 15, viewport.getWorldWidth() - 65, viewport.getWorldHeight() - 65);
+
+        //Draw icons
+        for (Icon icon : icons)
+            drawCircle(icon.getX(), icon.getY(), icon.getR(), icon.getColor());
+        batch.begin();
+        batch.draw(icons[0].getTexture(), icons[0].getX() - 25, icons[0].getY() - 25, 45, 45);
+        batch.draw(icons[1].getTexture(), icons[1].getX() - 20, icons[1].getY() - 20, 45, 45);
+        batch.draw(icons[2].getTexture(), icons[2].getX() - 22, icons[2].getY() - 22, 45, 45);
+        //batch.draw(icons[3].getTexture(), icons[3].getX()-20, icons[3].getY()-20, 45, 45);
+        batch.end();
     }
+
 
     public float getLevelLength(){
         if(trapezi.isEmpty())
@@ -456,6 +518,7 @@ public class EditorScreen extends InputAdapter implements Screen {
                 trapezi.add((Trapez)t);
             }
             System.out.println("Level successfully imported");
+            tlast = trapezi.get(trapezi.size);
             ois.close();
 
         }catch(EOFException ignore) { //ta exception nam samo pove, da je konec datoteke
@@ -486,9 +549,9 @@ public class EditorScreen extends InputAdapter implements Screen {
     @Override
     public boolean scrolled(int amount){
         if(amount == 1)
-            progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
+            progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth*15);
         if(amount == -1)
-            progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
+            progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth*15);
         return false;
     }
 
