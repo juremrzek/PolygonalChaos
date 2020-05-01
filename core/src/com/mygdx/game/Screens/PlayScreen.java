@@ -74,7 +74,7 @@ public class PlayScreen implements Screen {
 
     public PlayScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 6;
+        numberOfSides = 9;
         tiltRatio = 1;
         tiltRatioInc = true;
         startTime = System.nanoTime();
@@ -103,7 +103,6 @@ public class PlayScreen implements Screen {
         tlast = trapezi.get(trapezi.size - 1);
         //timeStampSpeed = tlast.getDistance()/getLevelLength();
         timestampSpeed = scrollSpeed/tlast.getStartDistance();
-        System.out.println(timestampSpeed);
 
         music = Gdx.audio.newMusic(Gdx.files.internal("music/shaman_gravity.mp3"));
         //music.setVolume(0.1f);
@@ -146,8 +145,12 @@ public class PlayScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         drawBackground();
-        for(Trapez t:trapezi)
-            drawTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition(), 0xFFFFFFFF);
+        for(Trapez t:trapezi){
+            initTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition());
+            if(t.getDistance() < 2000){
+                drawPolygon(t.getPoints(), 0xFFFFFFFF);
+            }
+        }
         drawEquilateralPolygon(pointer,3, pointer.getR(), pointer.getCenterX(), pointer.getCenterY(), colors[0], pointerAngle);
         drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[1].getR()+10, center.x, center.y, colors[0], angle);
         drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y, colors[1], angle);
@@ -181,6 +184,7 @@ public class PlayScreen implements Screen {
             Trapez t = trapezi.get(i);
             t.setDistance(t.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
             float distanceDiff;
+
             if(t.getDistance() <= middleHexagon[1].getR()){
                 distanceDiff = Math.abs(t.getDistance()-middleHexagon[1].getR());
                 t.setSize(t.getStartSize()-distanceDiff);
@@ -190,7 +194,7 @@ public class PlayScreen implements Screen {
                 t.setSize(t.getStartSize());
             }
             if(t.getSize() <= 0)
-                t.setSize(0);
+                trapezi.removeIndex(i);
         }
         boolean collidedLeft = false;
         boolean collidedRight = false;
@@ -200,6 +204,7 @@ public class PlayScreen implements Screen {
                 Vector trapezVector;
                 //float trapezAngle = angle+(float)360/numberOfSides*t.getPosition();
                 if(pointerRotationR <= t.getDistance()){
+                    System.out.println("you died");
                     dispose();
                 } //now check if the pointer is colliding with right or left size of trapez
                 else if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, pointer.getXPoints()[2], pointer.getYPoints()[2])){
@@ -274,7 +279,7 @@ public class PlayScreen implements Screen {
         }
         drawPolygon(p.getPoints(), color);
     }
-    private void drawTrapez(Polygon p, double distance, double size, double startAngle, int color){
+    private void initTrapez(Polygon p, double distance, double size, double startAngle){
         p.xPoints = new float[4];
         float x = center.x;
         p.xPoints[0] = (float)(x + distance*Math.cos(Math.toRadians(startAngle)));
@@ -288,8 +293,6 @@ public class PlayScreen implements Screen {
         p.yPoints[1] = (float)(y + distance/tiltRatio*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
         p.yPoints[3] = (float)(y + (distance+size)/tiltRatio*Math.sin(Math.toRadians(startAngle)));
         p.yPoints[2] = (float)(y + (distance+size)/tiltRatio*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
-
-        drawPolygon(p.getPoints(), color);
     }
 
     //draws a box on a side of the screen (left or right) - boxOffset tells the difference between top and bottom lines of a trapezium
@@ -374,9 +377,6 @@ public class PlayScreen implements Screen {
         }catch(EOFException ignored){ //ta exception nam samo pove, da je konec datoteke
         } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally{
-            System.out.println(trapezi.size);
         }
     }
     public float getLevelLength(){

@@ -71,7 +71,7 @@ public class EditorScreen extends InputAdapter implements Screen {
 
     public EditorScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 6;
+        numberOfSides = 9;
         tiltRatio = 1;
         tiltRatioInc = true;
         movingBar = false;
@@ -140,7 +140,9 @@ public class EditorScreen extends InputAdapter implements Screen {
         drawBackground();
         for(Trapez t:trapezi) {
             initTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition());
-            drawPolygon(t.getPoints(), 0xFFFFFFFF);
+            if(t.getDistance() < 2000) {
+                drawPolygon(t.getPoints(), 0xFFFFFFFF);
+            }
         }
         for(Trapez t:trapezi){
             if(t.isSelected()){
@@ -216,10 +218,13 @@ public class EditorScreen extends InputAdapter implements Screen {
                         if(trapezi.size > 1){
                             //if we place trapez after the last one, we extend the length of the whole level
                             progressIndicator.setX(progressBarWidth*tlast.getStartDistance()/nt.getStartDistance()*levelTimestamp+center.x-progressBarWidth/2);
+                            levelTimestamp = (progressIndicator.getX()-(center.x-progressBarWidth/2))/((center.x+progressBarWidth/2)-(center.x-progressBarWidth/2));
                         }
+                        tlast = nt;
                     }
-                    else
+                    else {
                         trapezi.insert(0, nt);
+                    }
                 }
             }
             for(int i=0; i<trapezi.size; i++) {
@@ -270,7 +275,7 @@ public class EditorScreen extends InputAdapter implements Screen {
             progressIndicator.setX(mouse.x-distanceFromProgressBarToMouse);
         }
         for(Trapez t:trapezi) {
-            if (t.getStartDistance() > tlast.getStartDistance()) {
+            if(t.getStartDistance() > tlast.getStartDistance()) {
                 tlast = t;
                 trapezi.removeValue(t, false);
                 trapezi.add(t);
@@ -314,6 +319,7 @@ public class EditorScreen extends InputAdapter implements Screen {
             if(t.getSize() <= 0)
                 t.setSize(0);
         }
+        levelTimestamp = (progressIndicator.getX()-(center.x-progressBarWidth/2))/((center.x+progressBarWidth/2)-(center.x-progressBarWidth/2));
 
         angle+=rotateSpeed*dt;
         angle=angle%360;
@@ -420,10 +426,8 @@ public class EditorScreen extends InputAdapter implements Screen {
             progressIndicator.setX(center.x+width/2);
         if(progressIndicator.getX() < center.x-width/2)
             progressIndicator.setX(center.x-width/2);
-        levelTimestamp = (progressIndicator.getX()-(center.x-width/2))/((center.x+width/2)-(center.x-width/2));
         sr.circle(progressIndicator.getX(), progressIndicator.getY(), progressIndicator.getR());
         sr.end();
-
         sr.setColor(Color.WHITE);
         sr.begin(ShapeRenderer.ShapeType.Line);
         sr.circle(progressIndicator.getX(), progressIndicator.getY(), progressIndicator.getR());
