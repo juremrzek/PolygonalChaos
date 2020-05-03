@@ -14,11 +14,8 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
-import com.mygdx.game.Objects.Point;
-import com.mygdx.game.Objects.Polygon;
-import com.mygdx.game.Objects.Trapez;
+import com.mygdx.game.Objects.*;
 import com.badlogic.gdx.math.Intersector;
-import com.mygdx.game.Objects.Vector;
 
 import java.io.EOFException;
 import java.io.File;
@@ -51,13 +48,14 @@ public class PlayScreen implements Screen {
     private Trapez tlast;
 
     //variables to create game diversity
-    private short numberOfSides;
+    private byte numberOfSides;
     private float angle;
-    private float rotateSpeed;
+    private int rotateSpeed;
     private float scrollSpeed;
     private float tiltRatio;
     private boolean tiltRatioInc;
-    private int [] colors;
+    private Color[] colors;
+    private Color[] currColorSet;
     private float levelTimestamp;
     private long startTime; //time when the screen was shown
     private float timestampSpeed;
@@ -74,7 +72,7 @@ public class PlayScreen implements Screen {
 
     public PlayScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 9;
+        numberOfSides = 8;
         tiltRatio = 1;
         tiltRatioInc = true;
         startTime = System.nanoTime();
@@ -126,14 +124,12 @@ public class PlayScreen implements Screen {
             pointer.yPoints[i] = (float) (pointer.getCenterY() + Math.sin(Math.toRadians(pointerAngle + (360f / pointer.xPoints.length) * i)) * pointer.getR() / tiltRatio);
         }
 
-        //Set the colors for the game - these can be changed later (fade)
-        colors = new int[5];
-        colors[0] = 0xfefcfdFF; //middle hexagon outline
-        colors[1] = 0x747474FF; //middle hexagon fill
-        colors[2] = 0xadabacFF; //lighter background part
-        colors[3] = 0x747474FF; //darker background part
-        colors[4] = 0x919090FF; //third background color if the number of sides is odd (middle color)
-        //colors[4] = 0x747474FF;
+        //Set the colors for the game - these can be changed later
+        currColorSet = ColorSets.yellowBlack;
+        colors = new Color[currColorSet.length];
+        for(int i=0; i<colors.length; i++){
+            colors[i] = new Color(currColorSet[i]);
+        }
     }
 
     @Override
@@ -148,7 +144,7 @@ public class PlayScreen implements Screen {
         for(Trapez t:trapezi){
             initTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition());
             if(t.getDistance() < 2000){
-                drawPolygon(t.getPoints(), 0xFFFFFFFF);
+                drawPolygon(t.getPoints(), colors[5]);
             }
         }
         drawEquilateralPolygon(pointer,3, pointer.getR(), pointer.getCenterX(), pointer.getCenterY(), colors[0], pointerAngle);
@@ -159,7 +155,8 @@ public class PlayScreen implements Screen {
     }
     private void update(float delta){
         dt = delta;
-        tlast = trapezi.get(trapezi.size - 1);
+        if(!trapezi.isEmpty())
+            tlast = trapezi.get(trapezi.size - 1);
         if(levelTimestamp <= 1)
             levelTimestamp +=timestampSpeed*dt;
 
@@ -231,9 +228,10 @@ public class PlayScreen implements Screen {
         pointer.setCenter(center.x + (float)(pointerRotationR * Math.cos(Math.toRadians(pointerAngle))),
                 center.y + (float)(pointerRotationR * Math.sin(Math.toRadians(pointerAngle)))/tiltRatio);
         pointerAngle += rotateSpeed*dt;
-        pointerAngle=pointerAngle%360;
+        pointerAngle %= 360;
         angle+=rotateSpeed*dt;
-        angle=angle%360;
+        angle %= 360;
+
 
         /*if(!(tiltRatio < 2 && tiltRatio >= 1)){ //tilt the screen up and down
             tiltRatioInc = !tiltRatioInc;
@@ -253,7 +251,7 @@ public class PlayScreen implements Screen {
                 bgTriangle.xPoints[j] = bgTriangle.xPoints[0] + (float) Math.cos(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999; //edges of background triangles need to be very far away from the center to cover the whole screen
                 bgTriangle.yPoints[j] = bgTriangle.yPoints[0] + (float)(Math.sin(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999)/tiltRatio;
             }
-            int tempColor;
+            Color tempColor;
             if(numberOfSides%2 == 0) {
                 if (i % 2 == 0)
                     tempColor = colors[2];
@@ -271,7 +269,7 @@ public class PlayScreen implements Screen {
             drawPolygon(bgTriangle.getPoints(), tempColor);
         }
     }
-    private void drawEquilateralPolygon(Polygon p, int n, int r, float x, float y, int color, float startAngle){
+    private void drawEquilateralPolygon(Polygon p, int n, int r, float x, float y, Color color, float startAngle){
         for(int i=0; i<n; i++) {
             double segment = Math.toRadians(startAngle + (360f / n) * i);
             p.xPoints[i] = (float) (x + Math.cos(segment) * r);
@@ -317,7 +315,7 @@ public class PlayScreen implements Screen {
         backgroundPointsY[2] = viewport.getWorldHeight() - boxHeight;
         backgroundPointsY[3] = viewport.getWorldHeight() - boxHeight;
         background = new Polygon(backgroundPointsX, backgroundPointsY);
-        drawPolygon(background.getPoints(), 0x000000FF);
+        drawPolygon(background.getPoints(), new Color(0x000000FF));
     }
 
     public void drawText(String text, float size, float x, float y) {
@@ -404,7 +402,7 @@ public class PlayScreen implements Screen {
     public void hide() {
 
     }
-    private void drawPolygon(float [] points, int color){
+    private void drawPolygon(float [] points, Color color){
         pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(color);
         pixmap.fill();

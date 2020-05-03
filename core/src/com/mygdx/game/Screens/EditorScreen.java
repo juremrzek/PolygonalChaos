@@ -10,10 +10,13 @@ import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.scenes.scene2d.actions.ColorAction;
+import com.badlogic.gdx.scenes.scene2d.actions.RepeatAction;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Objects.*;
+import java.awt.color.*;
 
 import java.io.*;
 
@@ -25,13 +28,13 @@ public class EditorScreen extends InputAdapter implements Screen {
     private MyGdxGame game;
     private FitViewport viewport;
     private OrthographicCamera camera;
-    private Pixmap pixmap;
     private SpriteBatch batch;
     private BitmapFont font;
     private ShapeRenderer sr;
     private Icon[] icons;
 
     //Objects to draw polygons
+    private Pixmap pixmap;
     private PolygonSprite poly;
     private PolygonSpriteBatch polyBatch;
     private Texture textureSolid;
@@ -44,13 +47,18 @@ public class EditorScreen extends InputAdapter implements Screen {
     private Trapez tlast;
 
     //variables to create game diversity
-    private short numberOfSides;
+    private byte numberOfSides;
     private float angle;
     private float rotateSpeed;
     private float scrollSpeed;
     private float tiltRatio;
     private boolean tiltRatioInc;
-    private int [] colors;
+    private Color[] colors;
+    private Color[] newColors;
+    private Color[] tempColors;
+    private Color[] currColorSet;
+    private ColorAction [] colorActions;
+
     private float levelTimestamp;
     private float timestampSpeed;
     private float progressBarWidth;
@@ -71,7 +79,7 @@ public class EditorScreen extends InputAdapter implements Screen {
 
     public EditorScreen(MyGdxGame game){
         angle = 0;
-        numberOfSides = 9;
+        numberOfSides = 8;
         tiltRatio = 1;
         tiltRatioInc = true;
         movingBar = false;
@@ -119,14 +127,29 @@ public class EditorScreen extends InputAdapter implements Screen {
         }
         trapezi = new Array<>();
 
-        //Set the colors for the game - these can be changed later (fade)
-        colors = new int[5];
-        colors[0] = 0xfefcfdFF; //middle hexagon outline
-        colors[1] = 0x747474FF; //middle hexagon fill
-        colors[2] = 0xadabacFF; //lighter background part
-        colors[3] = 0x747474FF; //darker background part
-        colors[4] = 0x919090FF; //third background color if the number of sides is odd (middle color)
-        //colors[4] = 0x747474FF;
+        //Set the colors for the game - these can be changed later
+        currColorSet = ColorSets.yellowBlack;
+        colors = new Color[currColorSet.length];
+        for(int i=0; i<colors.length; i++){
+            colors[i] = new Color(currColorSet[i]);
+        }
+        currColorSet = ColorSets.orange;
+        newColors = new Color[currColorSet.length];
+        for(int i=0; i<newColors.length; i++){
+            newColors[i] = new Color(currColorSet[i]);
+        }
+        tempColors = new Color[colors.length];
+        for(int i=0; i<colors.length; i++){
+            tempColors[i] = new Color(colors[i]);
+        }
+
+        colorActions = new ColorAction[6];
+        for(int i=0; i<colorActions.length; i++){
+            colorActions[i] = new ColorAction();
+            colorActions[i].setColor(colors[i]);
+            colorActions[i].setDuration(3);
+            colorActions[i].setEndColor(newColors[i]);
+        }
     }
 
     @Override
@@ -135,13 +158,21 @@ public class EditorScreen extends InputAdapter implements Screen {
 
     @Override
     public void render(float delta) {
+        /*for(int i=0; i<colorActions.length; i++){
+            ColorAction ca = colorActions[i];
+        }*/
+        for (ColorAction ca : colorActions) {
+            ca.act(delta);
+        }
+
+        //repeatAction.act(delta);
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         drawBackground();
         for(Trapez t:trapezi) {
             initTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition());
             if(t.getDistance() < 2000) {
-                drawPolygon(t.getPoints(), 0xFFFFFFFF);
+                drawPolygon(t.getPoints(), colorActions[5].getColor());
             }
         }
         for(Trapez t:trapezi){
@@ -149,8 +180,8 @@ public class EditorScreen extends InputAdapter implements Screen {
                 t.drawOutline(sr, new Color(0x006400FF));
             }
         }
-        drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[1].getR()+10, center.x, center.y, colors[0], angle);
-        drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y, colors[1], angle);
+        drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[1].getR()+10, center.x, center.y, colorActions[0].getColor(), angle);
+        drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y, colorActions[1].getColor(), angle);
         for(Icon icon:icons)
             if(icon.isSelected())
                 icon.setColor(new Color(0x006400FF));
@@ -174,10 +205,10 @@ public class EditorScreen extends InputAdapter implements Screen {
             exportLevel();
             game.setScreen(new PlayScreen(game));
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.D))
+        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D))
             progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
-        if(Gdx.input.isKeyPressed(Input.Keys.A))
-            progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
+        if(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A))
+           progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
 
         if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
             if(!movingBar && progressIndicator.intersects(mouse)){
@@ -258,7 +289,7 @@ public class EditorScreen extends InputAdapter implements Screen {
                     }
                 }
             }
-            if(deleting) {
+            if(deleting && !icons[2].intersects(mouse)) {
                 for (int i = 0; i < trapezi.size; i++) {
                     if(Intersector.isPointInPolygon(trapezi.get(i).getPoints(), 0, trapezi.get(i).getPoints().length, mouse.x, mouse.y)) {
                         trapezi.removeIndex(i);
@@ -292,6 +323,13 @@ public class EditorScreen extends InputAdapter implements Screen {
                 game.fullscreen = true;
             }
         }
+        if(Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+
+            for(int i=0; i<colorActions.length; i++){
+                colorActions[i].restart();
+                colorActions[i].setEndColor(colors[i]);
+            }
+        }
         if(Gdx.input.isKeyJustPressed(Input.Keys.P)) {
             File f = new File("core/assets/levels/" + levelName + ".lvl");
             if(f.exists())
@@ -320,18 +358,6 @@ public class EditorScreen extends InputAdapter implements Screen {
                 t.setSize(0);
         }
         levelTimestamp = (progressIndicator.getX()-(center.x-progressBarWidth/2))/((center.x+progressBarWidth/2)-(center.x-progressBarWidth/2));
-
-        angle+=rotateSpeed*dt;
-        angle=angle%360;
-
-        /*if(!(tiltRatio < 2 && tiltRatio >= 1)){ //tilt the screen up and down
-            tiltRatioInc = !tiltRatioInc;
-        }
-        if(tiltRatioInc)
-            tiltRatio+=0.3f*dt;
-        else
-            tiltRatio-=0.3f*dt;*/
-        //tiltRatio = 2;
     }
     private void drawBackground(){
         for(int i=0; i<numberOfSides; i++) {
@@ -342,25 +368,25 @@ public class EditorScreen extends InputAdapter implements Screen {
                 bgTriangle.xPoints[j] = bgTriangle.xPoints[0] + (float) Math.cos(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999; //edges of background triangles need to be very far away from the center to cover the whole screen
                 bgTriangle.yPoints[j] = bgTriangle.yPoints[0] + (float)(Math.sin(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999)/tiltRatio;
             }
-            int tempColor;
+            Color tempColor;
             if(numberOfSides%2 == 0) {
                 if (i % 2 == 0)
-                    tempColor = colors[2];
+                    tempColor = colorActions[2].getColor();
                 else
-                    tempColor = colors[3];
+                    tempColor = colorActions[3].getColor();
             }
             else{
                 if (i % 3 == 0)
-                    tempColor = colors[2];
+                    tempColor = colorActions[2].getColor();
                 else if(i % 2 == 0)
-                    tempColor = colors[3];
+                    tempColor = colorActions[3].getColor();
                 else
-                    tempColor = colors[4];
+                    tempColor = colorActions[4].getColor();
             }
             drawPolygon(bgTriangle.getPoints(), tempColor);
         }
     }
-    private void drawEquilateralPolygon(Polygon p, int n, int r, float x, float y, int color, float startAngle){
+    private void drawEquilateralPolygon(Polygon p, int n, int r, float x, float y, Color color, float startAngle){
         for(int i=0; i<n; i++) {
             double segment = Math.toRadians(startAngle + (360f / n) * i);
             p.xPoints[i] = (float) (x + Math.cos(segment) * r);
@@ -406,12 +432,12 @@ public class EditorScreen extends InputAdapter implements Screen {
         backgroundPointsY[2] = viewport.getWorldHeight() - boxHeight;
         backgroundPointsY[3] = viewport.getWorldHeight() - boxHeight;
         background = new Polygon(backgroundPointsX, backgroundPointsY);
-        drawPolygon(background.getPoints(), 0x000000FF);
+        drawPolygon(background.getPoints(), new Color(0x000000FF));
     }
     public void drawText(String text, float size, float x, float y) {
         batch.setProjectionMatrix(camera.combined); //so that coordinates are relative to camera (to the viewport)
         batch.begin();
-        font.getData().setScale(size/64);
+        font.getData().setScale(size/64); //The non-scaled font is size of 64px, we scale it based on size
         font.draw(batch, text, x, y);
         batch.end();
     }
@@ -558,8 +584,14 @@ public class EditorScreen extends InputAdapter implements Screen {
             progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth*15);
         return false;
     }
+     public String getRed(int c){
+        return "";
+     }
+     public int getGreen(int c){
+        return c/10000;
+     }
 
-    private void drawPolygon(float [] points, int color){
+    private void drawPolygon(float [] points, Color color){
         pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(color);
         pixmap.fill();

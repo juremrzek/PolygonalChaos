@@ -3,8 +3,7 @@ package com.mygdx.game;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics;
-import com.mygdx.game.Screens.EditorScreen;
-import com.mygdx.game.Screens.PlayScreen;
+import com.mygdx.game.Screens.*;
 
 public class MyGdxGame extends Game {
 	public boolean fullscreen;
@@ -15,7 +14,7 @@ public class MyGdxGame extends Game {
 		primaryMonitor = Gdx.graphics.getPrimaryMonitor();
 		if(fullscreen)
 			Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(primaryMonitor));
-		setScreen(new EditorScreen(this));
+		setScreen(new MenuScreen(this));
 	}
 
 	@Override
