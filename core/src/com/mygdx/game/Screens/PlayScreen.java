@@ -71,6 +71,11 @@ public class PlayScreen implements Screen {
     private Music music;
 
     public PlayScreen(MyGdxGame game){
+        this.game = game;
+    }
+
+    @Override
+    public void show() {
         angle = 0;
         numberOfSides = 8;
         tiltRatio = 1;
@@ -80,15 +85,11 @@ public class PlayScreen implements Screen {
         milliseconds = 0;
         levelName = "TestLevel";
         levelTimestamp = 0;
-
-        //variables that scale with delta
         rotateSpeed = 200;
         scrollSpeed = 200;
 
-        this.game = game;
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
-
         batch = new SpriteBatch();
         font = new BitmapFont(Gdx.files.internal("fonts/font.fnt"));
         font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -133,10 +134,6 @@ public class PlayScreen implements Screen {
     }
 
     @Override
-    public void show() {
-    }
-
-    @Override
     public void render(float delta) {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -144,7 +141,7 @@ public class PlayScreen implements Screen {
         for(Trapez t:trapezi){
             initTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition());
             if(t.getDistance() < 2000){
-                drawPolygon(t.getPoints(), colors[5]);
+                drawPolygon(t.getPoints(), colors[0]);
             }
         }
         drawEquilateralPolygon(pointer,3, pointer.getR(), pointer.getCenterX(), pointer.getCenterY(), colors[0], pointerAngle);
@@ -319,7 +316,6 @@ public class PlayScreen implements Screen {
     }
 
     public void drawText(String text, float size, float x, float y) {
-        batch.setProjectionMatrix(camera.combined); //so that coordinates are relative to camera (to the viewport)
         batch.begin();
         font.getData().setScale(size/64);
         font.draw(batch, text, x, y);
@@ -411,7 +407,6 @@ public class PlayScreen implements Screen {
         poly = new PolygonSprite(polyReg);
         poly.setOrigin(25, 25);
         polyBatch = new PolygonSpriteBatch();
-        polyBatch.setProjectionMatrix(camera.combined);
         polyBatch.begin();
         polyBatch.draw(polyReg, 2, 2);
         polyBatch.end();

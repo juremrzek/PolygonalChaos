@@ -26,14 +26,12 @@ public class MenuScreen implements Screen {
     private long startTime;
     private String[] options;
     private int optionFlag;
+    private float textWidth;
 
     //To draw polygons(for bg)
     private Pixmap pixmap;
-    private PolygonSprite poly;
     private PolygonSpriteBatch polyBatch;
     private Texture textureSolid;
-    private EarClippingTriangulator ect;
-    private PolygonRegion polyReg;
 
     private SpriteBatch batch;
     private BitmapFont font;
@@ -42,15 +40,20 @@ public class MenuScreen implements Screen {
 
     public MenuScreen(MyGdxGame game){
         this.game = game;
+    }
+
+    @Override
+    public void show() {
         numberOfSides = 6;
         angle = 0;
         startTime = System.nanoTime();
         optionFlag = 0;
-        options = new String[4];
+        options = new String[5];
         options[0] = "play";
         options[1] = "create";
         options[2] = "options";
         options[3] = "credits";
+        options[4] = "exit";
 
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
@@ -59,15 +62,16 @@ public class MenuScreen implements Screen {
         font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
 
-        numberOfColorSets = 7;
+        numberOfColorSets = 8;
         colorSets = new Color[numberOfColorSets][];
-        colorSets[0] = ColorSets.ORANGE;
-        colorSets[1] = ColorSets.YELLOW_BLACK;
-        colorSets[2] = ColorSets.PURPLE;
-        colorSets[3] = ColorSets.GREEN;
+        colorSets[0] = ColorSets.YELLOW_BLACK;
+        colorSets[1] = ColorSets.BROWN;
+        colorSets[2] = ColorSets.GREEN;
+        colorSets[3] = ColorSets.PURPLE;
         colorSets[4] = ColorSets.WHITE_GRAY;
         colorSets[5] = ColorSets.CYAN;
-        colorSets[6] = ColorSets.PINK;
+        colorSets[6] = ColorSets.YELLOW;
+        colorSets[7] = ColorSets.PINK;
 
         colorSetIndex = 0;
         currColorSet = colorSets[colorSetIndex];
@@ -75,25 +79,21 @@ public class MenuScreen implements Screen {
         for(int i=0; i<colors.length; i++){
             colors[i] = new Color(currColorSet[i]);
         }
-        colorSetIndex++;
         currColorSet = colorSets[colorSetIndex];
         newColors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
             newColors[i] = new Color(currColorSet[i]);
         }
         colorSetIndex++;
-        colorActions = new ColorAction[6];
+        colorActions = new ColorAction[currColorSet.length];
         for(int i=0; i<colorActions.length; i++){
             colorActions[i] = new ColorAction();
             colorActions[i].setColor(colors[i]);
             colorActions[i].setDuration(1);
             colorActions[i].setEndColor(newColors[i]);
         }
-    }
-
-    @Override
-    public void show() {
-
+        GlyphLayout layout = new GlyphLayout(font, "a a");
+        textWidth = layout.width/3;
     }
 
     @Override
@@ -122,13 +122,25 @@ public class MenuScreen implements Screen {
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)){
             switch(optionFlag){
-                case 0: game.setScreen(new PlayScreen(game));
+                case 0: game.setScreen(new LevelSelectScreen(game, angle));
                 break;
                 case 1: game.setScreen(new EditorScreen(game));
                 break;
+                case 4: dispose();
+                break;
             }
         }
-        if(getPassedTime() > 2000000000f){ //one seconds - 1000000000 nanoseconds (we change colors every 5s)
+        if(Gdx.input.isKeyPressed(Input.Keys.F)) {
+            if(game.fullscreen) {
+                Gdx.graphics.setWindowedMode((int)viewport.getWorldWidth(), (int)viewport.getWorldHeight());
+                game.fullscreen = false;
+            }
+            else {
+                Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(game.primaryMonitor));
+                game.fullscreen = true;
+            }
+        }
+        if(getPassedTime() > 2000000000f){ //one seconds - 1000000000 nanoseconds (we change colors every 2s)
             startTime = System.nanoTime();
             changeColor();
         }
@@ -198,12 +210,11 @@ public class MenuScreen implements Screen {
         pixmap.setColor(color);
         pixmap.fill();
         textureSolid = new Texture(pixmap);
-        ect = new EarClippingTriangulator();
-        polyReg = new PolygonRegion(new TextureRegion(textureSolid), points, ect.computeTriangles(points).toArray());
-        poly = new PolygonSprite(polyReg);
+        EarClippingTriangulator ect = new EarClippingTriangulator();
+        PolygonRegion polyReg = new PolygonRegion(new TextureRegion(textureSolid), points, ect.computeTriangles(points).toArray());
+        PolygonSprite poly = new PolygonSprite(polyReg);
         poly.setOrigin(25, 25);
         polyBatch = new PolygonSpriteBatch();
-        polyBatch.setProjectionMatrix(camera.combined);
         polyBatch.begin();
         polyBatch.draw(polyReg, 2, 2);
         polyBatch.end();
@@ -233,22 +244,22 @@ public class MenuScreen implements Screen {
     }
 
     private void drawText(String text, float size, float x, float y, Color color){
-        batch.setProjectionMatrix(camera.combined);
         batch.begin();
         font.setColor(color);
-        font.getData().setScale(size/64); //The non-scaled font is size of 64px, we scale it based on size
+        font.getData().setScale(size/64);
         font.draw(batch, text, x, y);
         batch.end();
     }
 
+
     private void drawMenuContent(){
-        drawText("POLYGONAL", 105, 110, viewport.getWorldHeight()-120, colors[0]);
+        drawText("POLYGONAL", 105, 100, viewport.getWorldHeight()-120, colors[0]);
         drawText("CHAOS", 64, center.x-185, viewport.getWorldHeight()-240, colors[0]);
         Trapez menuTrapez = new Trapez(150, 400, numberOfSides/4);
         initTrapez(menuTrapez, menuTrapez.getDistance(), menuTrapez.getSize(), 60);
         drawPolygon(menuTrapez.getPoints(), colors[0]);
-        drawText(options[optionFlag], 48, center.x-options[optionFlag].length()*54/2f, viewport.getWorldHeight()-560, colors[3]);
-        drawText("press space to start", 38, 220, 100, colors[0]);
+        drawText(options[optionFlag], 46, center.x-textWidth*options[optionFlag].length()*(46f/64)/2f, viewport.getWorldHeight()-560, colors[3]);
+        drawText("press space to select", 38, 175, 100, colors[0]);
         Polygon pointer = new Polygon(new float[3], new float[3], 30);
         drawEquilateralPolygon(pointer, 3, pointer.getR(), center.x-335, center.y-140, colors[0], 180);
         pointer = new Polygon(new float[3], new float[3], 30);
@@ -263,8 +274,5 @@ public class MenuScreen implements Screen {
         game.dispose();
         batch.dispose();
         font.dispose();
-        //sr.dispose();
-        //music.stop();
-        //music.dispose();
     }
 }
