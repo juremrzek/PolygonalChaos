@@ -35,11 +35,8 @@ public class EditorScreen extends InputAdapter implements Screen {
 
     //Objects to draw polygons
     private Pixmap pixmap;
-    private PolygonSprite poly;
     private PolygonSpriteBatch polyBatch;
     private Texture textureSolid;
-    private EarClippingTriangulator ect;
-    private PolygonRegion polyReg;
 
     //Objects that exist on the screen
     private Polygon[] middleHexagon; //Hexagon in the middle of the screen (2 of them because the bigger one is the outline)
@@ -55,7 +52,6 @@ public class EditorScreen extends InputAdapter implements Screen {
     private boolean tiltRatioInc;
     private Color[] colors;
     private Color[] newColors;
-    private Color[] tempColors;
     private Color[] currColorSet;
     private ColorAction [] colorActions;
 
@@ -128,19 +124,15 @@ public class EditorScreen extends InputAdapter implements Screen {
         trapezi = new Array<>();
 
         //Set the colors for the game - these can be changed later
-        currColorSet = ColorSets.yellowBlack;
+        currColorSet = ColorSets.YELLOW_BLACK;
         colors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
             colors[i] = new Color(currColorSet[i]);
         }
-        currColorSet = ColorSets.orange;
+        currColorSet = ColorSets.ORANGE;
         newColors = new Color[currColorSet.length];
         for(int i=0; i<newColors.length; i++){
             newColors[i] = new Color(currColorSet[i]);
-        }
-        tempColors = new Color[colors.length];
-        for(int i=0; i<colors.length; i++){
-            tempColors[i] = new Color(colors[i]);
         }
 
         colorActions = new ColorAction[6];
@@ -596,9 +588,9 @@ public class EditorScreen extends InputAdapter implements Screen {
         pixmap.setColor(color);
         pixmap.fill();
         textureSolid = new Texture(pixmap);
-        ect = new EarClippingTriangulator();
-        polyReg = new PolygonRegion(new TextureRegion(textureSolid), points, ect.computeTriangles(points).toArray());
-        poly = new PolygonSprite(polyReg);
+        EarClippingTriangulator ect = new EarClippingTriangulator();
+        PolygonRegion polyReg = new PolygonRegion(new TextureRegion(textureSolid), points, ect.computeTriangles(points).toArray());
+        PolygonSprite poly = new PolygonSprite(polyReg);
         poly.setOrigin(25, 25);
         polyBatch = new PolygonSpriteBatch();
         polyBatch.setProjectionMatrix(camera.combined);

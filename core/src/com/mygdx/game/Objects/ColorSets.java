@@ -3,38 +3,69 @@ package com.mygdx.game.Objects;
 import com.badlogic.gdx.graphics.Color;
 
 public class ColorSets {
-    public static final Color [] whiteGray = new Color[6];
-    public static final Color [] red = new Color[6];
-    public static final Color [] yellowBlack = new Color[6];
-    public static final Color [] orange = new Color[6];
+    public static final Color [] WHITE_GRAY = new Color[6];
+    public static final Color [] YELLOW_BLACK = new Color[6];
+    public static final Color [] RED = new Color[6];
+    public static final Color [] ORANGE = new Color[6];
+    public static final Color [] GREEN = new Color[6];
+    public static final Color [] PURPLE = new Color[6];
+    public static final Color [] CYAN = new Color[6];
+    public static final Color [] PINK = new Color[6];
     static {
-        whiteGray[0] = new Color(0xFFFFFFFF); //middle hexagon outline
-        whiteGray[1] = new Color(0x747474FF); //middle hexagon fill
-        whiteGray[2] = new Color(0xadabacFF); //lighter background part
-        whiteGray[3] = new Color(0x747474FF); //darker background part
-        whiteGray[4] = new Color(0x919090FF); //third background color if the number of sides is odd (middle color)
-        whiteGray[5] = new Color(0xFFFFFFFF); //color of obstacles
+        WHITE_GRAY[0] = new Color(0xFFFFFFFF); //middle hexagon outline
+        WHITE_GRAY[1] = new Color(0x747474FF); //middle hexagon fill
+        WHITE_GRAY[2] = new Color(0xadabacFF); //lighter background part
+        WHITE_GRAY[3] = new Color(0x747474FF); //darker background part
+        WHITE_GRAY[4] = new Color(0x919090FF); //third background color if the number of sides is odd (middle color)
+        WHITE_GRAY[5] = new Color(0xFFFFFFFF); //color of obstacles
 
-        yellowBlack[0] = new Color(0x9ea52aFF);
-        yellowBlack[1] = new Color(0x010001FF);
-        yellowBlack[2] = new Color(0x1a1805FF);
-        yellowBlack[3] = new Color(0x010001FF);
-        yellowBlack[4] = new Color(0x4d4711FF);
-        yellowBlack[5] = new Color(0x9fa528FF);
+        YELLOW_BLACK[0] = new Color(0x9ea52aFF);
+        YELLOW_BLACK[1] = new Color(0x010001FF);
+        YELLOW_BLACK[2] = new Color(0x1a1805FF);
+        YELLOW_BLACK[3] = new Color(0x010001FF);
+        YELLOW_BLACK[4] = new Color(0x4d4711FF);
+        YELLOW_BLACK[5] = new Color(0x9fa528FF);
 
-        orange[0] = new Color(0xcda405FF);
-        orange[1] = new Color(0x402e03FF);
-        orange[2] = new Color(0x5f4304FF);
-        orange[3] = new Color(0x3f2e03FF);
-        orange[4] = new Color(0x919090FF);//todo - needs to be added
-        orange[5] = new Color(0xcda405FF);
+        ORANGE[0] = new Color(0xcda405FF);
+        ORANGE[1] = new Color(0x402e03FF);
+        ORANGE[2] = new Color(0x5f4304FF);
+        ORANGE[3] = new Color(0x3f2e03FF);
+        ORANGE[4] = new Color(0x919090FF);//todo - needs to be added
+        ORANGE[5] = new Color(0xcda405FF);
 
-        red[0] = new Color(0xcb2118FF);
-        red[1] = new Color(0x4a1402FF);
-        red[2] = new Color(0x6f1d02FF);
-        red[3] = new Color(0x4a1402FF);
-        red[4] = new Color(0xcf211dFF);//todo - needs to be added
-        red[5] = new Color(0xcf211dFF);
+        RED[0] = new Color(0xcb2118FF);
+        RED[1] = new Color(0x4a1402FF);
+        RED[2] = new Color(0x6f1d02FF);
+        RED[3] = new Color(0x4a1402FF);
+        RED[4] = new Color(0xcf211dFF);//todo - needs to be added
+        RED[5] = new Color(0xcf211dFF);
 
+        GREEN[0] = new Color(0x51d625FF);
+        GREEN[1] = new Color(0x054600FF);
+        GREEN[2] = new Color(0x0e5400FF);
+        GREEN[3] = new Color(0x044700FF);
+        GREEN[4] = new Color(0xcf211dFF);//todo - needs to be added
+        GREEN[5] = new Color(0x51d625FF);
+
+        PURPLE[0] = new Color(0x7226ffFF);
+        PURPLE[1] = new Color(0x180755FF);
+        PURPLE[2] = new Color(0x240866FF);
+        PURPLE[3] = new Color(0x16064fFF);
+        PURPLE[4] = new Color(0xcf211dFF);//todo - needs to be added
+        PURPLE[5] = new Color(0x7226ffFF);
+
+        CYAN[0] = new Color(0x00c5ffFF);
+        CYAN[1] = new Color(0x004653FF);
+        CYAN[2] = new Color(0x005165FF);
+        CYAN[3] = new Color(0x004653FF);
+        CYAN[4] = new Color(0xcf211dFF);//todo - needs to be added
+        CYAN[5] = new Color(0x00c5ffFF);
+
+        PINK[0] = new Color(0xff32ddFF);
+        PINK[1] = new Color(0x570d4fFF);
+        PINK[2] = new Color(0x6b0e5bFF);
+        PINK[3] = new Color(0x4d0b47FF);
+        PINK[4] = new Color(0xcf211dFF);//todo - needs to be added
+        PINK[5] = new Color(0xff32ddFF);
     }
 }

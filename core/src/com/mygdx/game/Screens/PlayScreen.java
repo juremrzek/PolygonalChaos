@@ -125,7 +125,7 @@ public class PlayScreen implements Screen {
         }
 
         //Set the colors for the game - these can be changed later
-        currColorSet = ColorSets.yellowBlack;
+        currColorSet = ColorSets.YELLOW_BLACK;
         colors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
             colors[i] = new Color(currColorSet[i]);
@@ -327,8 +327,7 @@ public class PlayScreen implements Screen {
     }
 
     public long getPassedTime() { //time that has passed since the beginning of the level (screen)
-        long passedTime = System.nanoTime() - startTime;
-        return passedTime;
+        return System.nanoTime() - startTime;
     }
 
     public void drawInfo(){
