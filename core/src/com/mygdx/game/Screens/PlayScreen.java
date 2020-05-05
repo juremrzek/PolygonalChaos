@@ -29,17 +29,16 @@ public class PlayScreen implements Screen {
     private MyGdxGame game;
     private FitViewport viewport;
     private OrthographicCamera camera;
-    private Pixmap pixmap;
     private SpriteBatch batch;
     private BitmapFont font;
     private ShapeRenderer sr;
 
     //Objects to draw polygons
+    private Pixmap pixmap;
     private PolygonSprite poly;
     private PolygonSpriteBatch polyBatch;
     private Texture textureSolid;
     private EarClippingTriangulator ect;
-    private PolygonRegion polyReg;
 
     //Objects that exist on the screen
     private Polygon[] middleHexagon; //Hexagon in the middle of the screen (2 of them because the bigger one is the outline)
@@ -79,7 +78,7 @@ public class PlayScreen implements Screen {
         milliseconds = 0;
         levelTimestamp = 0;
         rotateSpeed = 200;
-        levelName = "TestingLevelObject";
+        levelName = "TestMultiple";
 
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);

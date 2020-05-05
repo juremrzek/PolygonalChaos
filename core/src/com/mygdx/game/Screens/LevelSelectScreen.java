@@ -10,17 +10,18 @@ import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.scenes.scene2d.actions.ColorAction;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
-import com.mygdx.game.Objects.ColorSets;
-import com.mygdx.game.Objects.Point;
-import com.mygdx.game.Objects.Polygon;
+import com.mygdx.game.Objects.*;
 
 public class LevelSelectScreen implements Screen {
     private MyGdxGame game;
     private Point center;
-    private PolygonSprite poly;
-    private EarClippingTriangulator ect;
-    private PolygonRegion polyReg;
     private Polygon[] middleHexagon;
+
+    private Pixmap pixmap;
+    private PolygonSprite poly;
+    private PolygonSpriteBatch polyBatch;
+    private Texture textureSolid;
+    private EarClippingTriangulator ect;
 
     private SpriteBatch batch;
     private BitmapFont font;
@@ -36,14 +37,25 @@ public class LevelSelectScreen implements Screen {
     private ColorAction[] colorActions;
     private float textWidth;
 
+    private Level[] levels;
+    private Level displayedLevel;
+    private int displayedLevelIndex;
+
     public LevelSelectScreen(MyGdxGame game, float angle){
         this.game = game;
         this.angle = angle;
     }
-
     @Override
     public void show() {
-        numberOfSides = 4;
+        levels = new Level[3];
+        levels[0] = new Level("Superhexogner", 5, 0.45f, "Some Song lmao ded dd");
+        levels[1] = new Level("oklmao 2", 4, 0.8f, "Galaxy collapse");
+        levels[2] = new Level("Some other name", 8, 0.113135f, "For the love of god");
+        displayedLevelIndex = 0;
+        displayedLevel = levels[displayedLevelIndex];
+        numberOfSides = displayedLevel.getNumberOfSides();
+
+
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
         batch = new SpriteBatch();
@@ -51,6 +63,18 @@ public class LevelSelectScreen implements Screen {
         font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
         sr = new ShapeRenderer();
+
+        Trapez tempTrapez = new Trapez(100, 100, 1);
+        initTrapez(tempTrapez, tempTrapez.getStartDistance(), tempTrapez.getSize(), angle);
+        //objects to draw polygons
+        pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        ect = new EarClippingTriangulator();
+        polyBatch = new PolygonSpriteBatch();
+        pixmap.fill();
+        textureSolid = new Texture(pixmap);
+        PolygonRegion polyReg = new PolygonRegion(new TextureRegion(textureSolid), tempTrapez.getPoints(), ect.computeTriangles(tempTrapez.getPoints()).toArray());
+        poly = new PolygonSprite(polyReg);
+
         currColorSet = ColorSets.YELLOW_BLACK;
         colors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
@@ -92,22 +116,40 @@ public class LevelSelectScreen implements Screen {
         sr.end();
         drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[0].getR()+10, center.x, center.y-120, colorActions[0].getColor(), angle);
         drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y-120, colorActions[1].getColor(), angle);
-        drawText("LEVELS", 52, center.x-textWidth*"Levels".length()*(52f/64)/2, viewport.getWorldHeight()-30, colors[0]);
-        String s = "supernova";
+        String s = "Levels";
+        drawText(s, 52, center.x-textWidth*s.length()*(52f/64)/2, viewport.getWorldHeight()-30, colors[0]);
+        s = displayedLevel.getName();
         drawText(s, 64, center.x-textWidth*s.length()/2, viewport.getWorldHeight()-180, colors[0]);
-        s = "progress: 80%";
+        s = "progress: "+displayedLevel.getProgress();
         drawText(s, 32, center.x-textWidth*s.length()/4, viewport.getWorldHeight()-320, colors[0]);
-        s = "song: supernova";
+        s = "song: "+displayedLevel.getSongName();
         drawText(s, 32, center.x-textWidth*s.length()/4, viewport.getWorldHeight()-380, colors[0]);
         update(delta);
     }
 
     public void update(float dt){
+        displayedLevel = levels[displayedLevelIndex];
+        numberOfSides = displayedLevel.getNumberOfSides();
+        for(int i=0; i<middleHexagon.length; i++) {
+            middleHexagon[i] = new Polygon(new float[numberOfSides], new float[numberOfSides], 70);
+            middleHexagon[i].setCenter(center.x, center.y);
+        }
+
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
             game.setScreen(new MenuScreen(game));
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
             game.setScreen(new PlayScreen(game));
+        }
+        if(Gdx.input.isKeyJustPressed(Input.Keys.A) || Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+            displayedLevelIndex--;
+            if(displayedLevelIndex<0)
+                displayedLevelIndex = levels.length-1;
+        }
+        if(Gdx.input.isKeyJustPressed(Input.Keys.D) || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+            displayedLevelIndex++;
+            if(displayedLevelIndex>levels.length-1)
+                displayedLevelIndex = 0;
         }
         angle+=0.1f;
         angle%=360;
@@ -132,21 +174,31 @@ public class LevelSelectScreen implements Screen {
     public void hide() {
 
     }
+    private void initTrapez(Polygon p, double distance, double size, double startAngle){
+        p.xPoints = new float[4];
+        p.xPoints[0] = (float)(center.x + distance*Math.cos(Math.toRadians(startAngle)));
+        p.xPoints[1] = (float)(center.x + distance*Math.cos(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
+        p.xPoints[3] = (float)(center.x + (distance+size)*Math.cos(Math.toRadians(startAngle)));
+        p.xPoints[2] = (float)(center.x + (distance+size)*Math.cos(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
+
+        p.yPoints = new float[4];
+        p.yPoints[0] = (float)(-100 + distance*Math.sin(Math.toRadians(startAngle)));
+        p.yPoints[1] = (float)(-100 + distance*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
+        p.yPoints[3] = (float)(-100 + (distance+size)*Math.sin(Math.toRadians(startAngle)));
+        p.yPoints[2] = (float)(-100 + (distance+size)*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
+    }
     private void drawPolygon(float [] points, Color color){
-        //To draw polygons(for bg)
-        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(color);
         pixmap.fill();
-        Texture textureSolid = new Texture(pixmap);
-        EarClippingTriangulator ect = new EarClippingTriangulator();
+        textureSolid = new Texture(pixmap);
         PolygonRegion polyReg = new PolygonRegion(new TextureRegion(textureSolid), points, ect.computeTriangles(points).toArray());
-        PolygonSprite poly = new PolygonSprite(polyReg);
+        poly.setRegion(polyReg);
         poly.setOrigin(25, 25);
-        PolygonSpriteBatch polyBatch = new PolygonSpriteBatch();
         polyBatch.setProjectionMatrix(camera.combined);
         polyBatch.begin();
         polyBatch.draw(polyReg, 2, 2);
         polyBatch.end();
+        textureSolid.dispose();
     }
     private void drawBackground(){
         for(int i=0; i<numberOfSides; i++) {

@@ -84,13 +84,12 @@ public class EditorScreen extends InputAdapter implements Screen {
     public void show() {
         angle = 0;
         numberOfSides = 10;
-        angle = 360f/numberOfSides;
         movingBar = false;
         movingTrapez = false;
         placing = true;
         dragging = true;
         sizeOfNewTrapez = 100;
-        levelName = "TestingLevelObject";
+        levelName = "TestMultiple";
         Gdx.input.setInputProcessor(this);
 
         scrollSpeed = 200;
@@ -538,7 +537,7 @@ public class EditorScreen extends InputAdapter implements Screen {
     }
     public void exportLevel() {
         try {
-            Level level = new Level(levelName, numberOfSides, getLevelLength(), trapezi.toArray(), ColorSets.toString(currColorSet), scrollSpeed);
+            Level level = new Level(levelName, numberOfSides, getLevelLength(), trapezi.toArray(), ColorSets.toString(currColorSet), scrollSpeed, "ok");
             FileOutputStream fos = new FileOutputStream("core/assets/levels/" + levelName + ".lvl");
             ObjectOutputStream ous = new ObjectOutputStream(fos);
             /*for(Trapez t:trapezi) {
