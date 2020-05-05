@@ -1,5 +1,7 @@
 package com.mygdx.game.Objects;
 
+import com.badlogic.gdx.math.Vector2;
+
 public class Circle {
     private float x;
     private float y;
@@ -32,6 +34,9 @@ public class Circle {
     }
     public boolean intersects(Point p){
         return p.distanceFrom(new Point(this.x, this.y)) < this.r;
+    }
+    public boolean intersects(Vector2 p){
+        return (new Point(this.x, this.y).distanceFrom(p) < this.r);
     }
     public Point getCenter() {
         return new Point(x,y);

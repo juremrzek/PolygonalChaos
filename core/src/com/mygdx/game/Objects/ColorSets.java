@@ -2,7 +2,9 @@ package com.mygdx.game.Objects;
 
 import com.badlogic.gdx.graphics.Color;
 
-public class ColorSets {
+import java.io.Serializable;
+
+public class ColorSets implements Serializable {
     public static final Color [] WHITE_GRAY = new Color[5];
     public static final Color [] YELLOW_BLACK = new Color[5];
     public static final Color [] RED = new Color[5];
@@ -73,5 +75,12 @@ public class ColorSets {
         BLACK[2] = new Color(Color.BLACK);
         BLACK[3] = new Color(Color.BLACK);
         BLACK[4] = new Color(Color.BLACK);
+    }
+    public static String[] toString(Color[] colors){
+        String[] s = new String[colors.length];
+        for(int i=0; i<colors.length; i++){
+            s[i] = colors[i].toString();
+        }
+        return s;
     }
 }

@@ -1,47 +1,53 @@
 package com.mygdx.game.Objects;
 
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.utils.Array;
 
-public class Level implements Screen {
+import java.io.Serializable;
+
+public class Level implements Serializable {
     private String name;
+    private int numberOfSides;
+    private String[] colorSet;
+    private float duration;
+    private Object[] trapezi;
     private float scrollSpeed;
-
-    public Level(){
-
+    public Level(String name, int numberOfSides, float duration, Object[] trapezi, String[] colorSet, float scrollSpeed){
+        this.name = name;
+        this.numberOfSides = numberOfSides;
+        this.duration = duration;
+        this.trapezi = trapezi;
+        this.colorSet = colorSet;
+        this.scrollSpeed = scrollSpeed;
     }
-
-    @Override
-    public void show() {
-
+    public String getName(){
+        return name;
     }
-
-    @Override
-    public void render(float delta) {
-
+    public int getNumberOfSides(){
+        return numberOfSides;
     }
-
-    @Override
-    public void resize(int width, int height) {
-
+    public Object[] getTrapezi() {
+        return trapezi;
     }
-
-    @Override
-    public void pause() {
-
+    public void setTrapezi(Object[] trapezi) {
+        this.trapezi = trapezi;
     }
-
-    @Override
-    public void resume() {
-
+    public float getDuration() {
+        return duration;
     }
-
-    @Override
-    public void hide() {
-
+    public void setDuration(float duration) {
+        this.duration = duration;
     }
-
-    @Override
-    public void dispose() {
-
+    public float getScrollSpeed() {
+        return scrollSpeed;
+    }
+    public void setScrollSpeed(float scrollSpeed) {
+        this.scrollSpeed = scrollSpeed;
+    }
+    public String[] getColorSet() {
+        return colorSet;
+    }
+    public void setColorSet(String[] colorSet) {
+        this.colorSet = colorSet;
     }
 }

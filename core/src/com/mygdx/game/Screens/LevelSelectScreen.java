@@ -83,6 +83,7 @@ public class LevelSelectScreen implements Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         drawBackground();
         sr.setColor(Color.BLACK);
+        sr.setProjectionMatrix(camera.combined);
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.rect(0, viewport.getWorldHeight()-720, viewport.getWorldWidth(), viewport.getWorldHeight()-310);
         sr.setColor(colors[0]);
@@ -105,13 +106,16 @@ public class LevelSelectScreen implements Screen {
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
             game.setScreen(new MenuScreen(game));
         }
+        if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
+            game.setScreen(new PlayScreen(game));
+        }
         angle+=0.1f;
         angle%=360;
     }
 
     @Override
     public void resize(int width, int height) {
-
+        viewport.update(width, height, true);
     }
 
     @Override
@@ -139,6 +143,7 @@ public class LevelSelectScreen implements Screen {
         PolygonSprite poly = new PolygonSprite(polyReg);
         poly.setOrigin(25, 25);
         PolygonSpriteBatch polyBatch = new PolygonSpriteBatch();
+        polyBatch.setProjectionMatrix(camera.combined);
         polyBatch.begin();
         polyBatch.draw(polyReg, 2, 2);
         polyBatch.end();
@@ -170,6 +175,7 @@ public class LevelSelectScreen implements Screen {
     }
     public void drawText(String text, float size, float x, float y, Color color) {
         batch.begin();
+        batch.setProjectionMatrix(camera.combined);
         font.setColor(color);
         font.getData().setScale(size/64); //The non-scaled font is size of 64px, we scale it based on size
         font.draw(batch, text, x, y);

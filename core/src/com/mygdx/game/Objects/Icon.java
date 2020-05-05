@@ -2,6 +2,7 @@ package com.mygdx.game.Objects;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
 
 public class Icon{
     private float x;
@@ -44,5 +45,8 @@ public class Icon{
     }
     public boolean intersects(Point p){
         return p.distanceFrom(new Point(this.x, this.y)) < this.r;
+    }
+    public boolean intersects(Vector2 p){
+        return (new Point(this.x, this.y).distanceFrom(p) < this.r);
     }
 }

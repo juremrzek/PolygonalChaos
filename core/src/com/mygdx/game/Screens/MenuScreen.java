@@ -13,7 +13,7 @@ import com.mygdx.game.Objects.*;
 
 public class MenuScreen implements Screen {
     private MyGdxGame game;
-    private byte numberOfSides;
+    private int numberOfSides;
     private float angle;
     private Color[] colors;
     private Color[] newColors;
@@ -27,11 +27,14 @@ public class MenuScreen implements Screen {
     private String[] options;
     private int optionFlag;
     private float textWidth;
+    private Trapez menuTrapez;
 
     //To draw polygons(for bg)
     private Pixmap pixmap;
     private PolygonSpriteBatch polyBatch;
     private Texture textureSolid;
+    private EarClippingTriangulator ect;
+    private PolygonSprite poly;
 
     private SpriteBatch batch;
     private BitmapFont font;
@@ -61,15 +64,26 @@ public class MenuScreen implements Screen {
         font = new BitmapFont(Gdx.files.internal("fonts/font.fnt"));
         font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
+        menuTrapez = new Trapez(150, 400, numberOfSides/4);
+        initTrapez(menuTrapez, menuTrapez.getDistance(), menuTrapez.getSize(), 60);
+
+        //objects to draw polygons
+        pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        ect = new EarClippingTriangulator();
+        polyBatch = new PolygonSpriteBatch();
+        pixmap.fill();
+        textureSolid = new Texture(pixmap);
+        PolygonRegion polyReg = new PolygonRegion(new TextureRegion(textureSolid), menuTrapez.getPoints(), ect.computeTriangles(menuTrapez.getPoints()).toArray());
+        poly = new PolygonSprite(polyReg);
 
         numberOfColorSets = 8;
         colorSets = new Color[numberOfColorSets][];
-        colorSets[0] = ColorSets.YELLOW_BLACK;
-        colorSets[1] = ColorSets.BROWN;
+        colorSets[0] = ColorSets.BROWN;
+        colorSets[1] = ColorSets.YELLOW_BLACK;
         colorSets[2] = ColorSets.GREEN;
         colorSets[3] = ColorSets.PURPLE;
-        colorSets[4] = ColorSets.WHITE_GRAY;
-        colorSets[5] = ColorSets.CYAN;
+        colorSets[4] = ColorSets.CYAN;
+        colorSets[5] = ColorSets.WHITE_GRAY;
         colorSets[6] = ColorSets.YELLOW;
         colorSets[7] = ColorSets.PINK;
 
@@ -79,6 +93,7 @@ public class MenuScreen implements Screen {
         for(int i=0; i<colors.length; i++){
             colors[i] = new Color(currColorSet[i]);
         }
+        colorSetIndex++;
         currColorSet = colorSets[colorSetIndex];
         newColors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
@@ -109,7 +124,7 @@ public class MenuScreen implements Screen {
     }
     public void update(float dt){
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
-            dispose();
+            game.dispose();
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.LEFT)){
             optionFlag--;
@@ -126,7 +141,7 @@ public class MenuScreen implements Screen {
                 break;
                 case 1: game.setScreen(new EditorScreen(game));
                 break;
-                case 4: dispose();
+                case 4: game.dispose();
                 break;
             }
         }
@@ -171,7 +186,7 @@ public class MenuScreen implements Screen {
         for(int i=0; i<numberOfSides; i++) {
             Polygon bgTriangle = new Polygon(new float[3], new float[3]);
             for (int j = 1; j < 3; j++) {
-                bgTriangle.xPoints[0] = viewport.getWorldWidth() / 2f;
+                bgTriangle.xPoints[0] = center.x;
                 bgTriangle.yPoints[0] = -100;
                 bgTriangle.xPoints[j] = bgTriangle.xPoints[0] + (float) Math.cos(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999; //edges of background triangles need to be very far away from the center to cover the whole screen
                 bgTriangle.yPoints[j] = bgTriangle.yPoints[0] + (float)(Math.sin(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999);
@@ -206,33 +221,30 @@ public class MenuScreen implements Screen {
     }
 
     private void drawPolygon(float [] points, Color color){
-        pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(color);
         pixmap.fill();
         textureSolid = new Texture(pixmap);
-        EarClippingTriangulator ect = new EarClippingTriangulator();
         PolygonRegion polyReg = new PolygonRegion(new TextureRegion(textureSolid), points, ect.computeTriangles(points).toArray());
-        PolygonSprite poly = new PolygonSprite(polyReg);
+        poly.setRegion(polyReg);
         poly.setOrigin(25, 25);
-        polyBatch = new PolygonSpriteBatch();
+        polyBatch.setProjectionMatrix(camera.combined);
         polyBatch.begin();
         polyBatch.draw(polyReg, 2, 2);
         polyBatch.end();
+        textureSolid.dispose();
     }
     private void initTrapez(Polygon p, double distance, double size, double startAngle){
         p.xPoints = new float[4];
-        float x = center.x;
-        p.xPoints[0] = (float)(x + distance*Math.cos(Math.toRadians(startAngle)));
-        p.xPoints[1] = (float)(x + distance*Math.cos(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
-        p.xPoints[3] = (float)(x + (distance+size)*Math.cos(Math.toRadians(startAngle)));
-        p.xPoints[2] = (float)(x + (distance+size)*Math.cos(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
+        p.xPoints[0] = (float)(center.x + distance*Math.cos(Math.toRadians(startAngle)));
+        p.xPoints[1] = (float)(center.x + distance*Math.cos(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
+        p.xPoints[3] = (float)(center.x + (distance+size)*Math.cos(Math.toRadians(startAngle)));
+        p.xPoints[2] = (float)(center.x + (distance+size)*Math.cos(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
 
         p.yPoints = new float[4];
-        float y = -100;
-        p.yPoints[0] = (float)(y + distance*Math.sin(Math.toRadians(startAngle)));
-        p.yPoints[1] = (float)(y + distance*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
-        p.yPoints[3] = (float)(y + (distance+size)*Math.sin(Math.toRadians(startAngle)));
-        p.yPoints[2] = (float)(y + (distance+size)*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
+        p.yPoints[0] = (float)(-100 + distance*Math.sin(Math.toRadians(startAngle)));
+        p.yPoints[1] = (float)(-100 + distance*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
+        p.yPoints[3] = (float)(-100 + (distance+size)*Math.sin(Math.toRadians(startAngle)));
+        p.yPoints[2] = (float)(-100 + (distance+size)*Math.sin(Math.toRadians(360f/numberOfSides)+Math.toRadians(startAngle)));
     }
     private void drawEquilateralPolygon(Polygon p, int n, int r, float x, float y, Color color, float startAngle){
         for(int i=0; i<n; i++) {
@@ -245,6 +257,7 @@ public class MenuScreen implements Screen {
 
     private void drawText(String text, float size, float x, float y, Color color){
         batch.begin();
+        batch.setProjectionMatrix(camera.combined);
         font.setColor(color);
         font.getData().setScale(size/64);
         font.draw(batch, text, x, y);
@@ -255,8 +268,6 @@ public class MenuScreen implements Screen {
     private void drawMenuContent(){
         drawText("POLYGONAL", 105, 100, viewport.getWorldHeight()-120, colors[0]);
         drawText("CHAOS", 64, center.x-185, viewport.getWorldHeight()-240, colors[0]);
-        Trapez menuTrapez = new Trapez(150, 400, numberOfSides/4);
-        initTrapez(menuTrapez, menuTrapez.getDistance(), menuTrapez.getSize(), 60);
         drawPolygon(menuTrapez.getPoints(), colors[0]);
         drawText(options[optionFlag], 46, center.x-textWidth*options[optionFlag].length()*(46f/64)/2f, viewport.getWorldHeight()-560, colors[3]);
         drawText("press space to select", 38, 175, 100, colors[0]);
@@ -271,7 +282,6 @@ public class MenuScreen implements Screen {
         pixmap.dispose();
         polyBatch.dispose();
         textureSolid.dispose();
-        game.dispose();
         batch.dispose();
         font.dispose();
     }
