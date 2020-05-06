@@ -26,6 +26,7 @@ public class EditorScreen extends InputAdapter implements Screen {
 
     private float dt; //deltatime
     private String levelName;
+    private String songName;
 
     private MyGdxGame game;
     private FitViewport viewport;
@@ -83,13 +84,14 @@ public class EditorScreen extends InputAdapter implements Screen {
     @Override
     public void show() {
         angle = 0;
-        numberOfSides = 10;
+        numberOfSides = 4;
         movingBar = false;
         movingTrapez = false;
         placing = true;
         dragging = true;
         sizeOfNewTrapez = 100;
-        levelName = "TestMultiple";
+        levelName = "OWIewiu";
+        songName = "supergay gay gei";
         Gdx.input.setInputProcessor(this);
 
         scrollSpeed = 200;
@@ -208,10 +210,6 @@ public class EditorScreen extends InputAdapter implements Screen {
             }
             exportLevel();
             game.setScreen(new MenuScreen(game));
-        }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.S)) {
-            this.dispose();
-            game.setScreen(new PlayScreen(game));
         }
         if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D))
             progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
@@ -537,7 +535,7 @@ public class EditorScreen extends InputAdapter implements Screen {
     }
     public void exportLevel() {
         try {
-            Level level = new Level(levelName, numberOfSides, getLevelLength(), trapezi.toArray(), ColorSets.toString(currColorSet), scrollSpeed, "ok");
+            Level level = new Level(levelName, numberOfSides, getLevelLength(), trapezi.toArray(), ColorSets.toString(currColorSet), scrollSpeed, songName);
             FileOutputStream fos = new FileOutputStream("core/assets/levels/" + levelName + ".lvl");
             ObjectOutputStream ous = new ObjectOutputStream(fos);
             /*for(Trapez t:trapezi) {

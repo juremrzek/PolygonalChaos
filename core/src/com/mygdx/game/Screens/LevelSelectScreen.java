@@ -3,14 +3,19 @@ package com.mygdx.game.Screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.scenes.scene2d.actions.ColorAction;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Objects.*;
+
+import java.io.FileInputStream;
+import java.io.ObjectInputStream;
 
 public class LevelSelectScreen implements Screen {
     private MyGdxGame game;
@@ -47,10 +52,11 @@ public class LevelSelectScreen implements Screen {
     }
     @Override
     public void show() {
-        levels = new Level[3];
-        levels[0] = new Level("Superhexogner", 5, 0.45f, "Some Song lmao ded dd");
-        levels[1] = new Level("oklmao 2", 4, 0.8f, "Galaxy collapse");
-        levels[2] = new Level("Some other name", 8, 0.113135f, "For the love of god");
+        //getLevels();
+        importLevels();
+        //levels[0] = new Level("Superhexogner", 5, 0.45f, "Some Song lmao ded dd");
+        //levels[1] = new Level("oklmao 2", 4, 0.8f, "Galaxy collapse");
+        //levels[2] = new Level("Some other name", 8, 0.113135f, "For the love of god");
         displayedLevelIndex = 0;
         displayedLevel = levels[displayedLevelIndex];
         numberOfSides = displayedLevel.getNumberOfSides();
@@ -139,7 +145,7 @@ public class LevelSelectScreen implements Screen {
             game.setScreen(new MenuScreen(game));
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
-            game.setScreen(new PlayScreen(game));
+            game.setScreen(new PlayScreen(game, displayedLevel));
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.A) || Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
             displayedLevelIndex--;
@@ -215,6 +221,22 @@ public class LevelSelectScreen implements Screen {
             else
                 tempColor = colorActions[3].getColor();
             drawPolygon(bgTriangle.getPoints(), tempColor);
+        }
+    }
+    private void importLevels(){
+        FileHandle fh = Gdx.files.internal("core/assets/levels");
+        FileHandle[] fileNames = fh.list();
+        levels = new Level[fileNames.length];
+        for(int i=0; i<fileNames.length; i++){
+            try {
+                FileInputStream fin = new FileInputStream(fileNames[i].toString());
+                ObjectInputStream ois = new ObjectInputStream(fin);
+                Level level = (Level) ois.readObject();
+                ois.close();
+                levels[i] = level;
+            }catch(Exception e){
+                e.printStackTrace();
+            }
         }
     }
     private void drawEquilateralPolygon(Polygon p, int n, int r, float x, float y, Color color, float startAngle){

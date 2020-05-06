@@ -46,7 +46,7 @@ public class PlayScreen implements Screen {
     private Array<Trapez> trapezi; //Obstacles (Array is Libgdx's equivalent to ArrayList)
     private Trapez tlast;
 
-    private String levelName;
+    private Level level;
     private int numberOfSides;
     private float angle;
     private int rotateSpeed;
@@ -66,8 +66,9 @@ public class PlayScreen implements Screen {
     private Point center;
     private Music music;
 
-    public PlayScreen(MyGdxGame game){
+    public PlayScreen(MyGdxGame game, Level level){
         this.game = game;
+        this.level = level;
     }
 
     @Override
@@ -78,7 +79,6 @@ public class PlayScreen implements Screen {
         milliseconds = 0;
         levelTimestamp = 0;
         rotateSpeed = 200;
-        levelName = "TestMultiple";
 
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
@@ -90,9 +90,13 @@ public class PlayScreen implements Screen {
         //Set the center of the screen as a point
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
 
-        File f = new File("core/assets/levels/" + levelName + ".lvl");
-        if(f.exists())
-            importLevel(f);
+        trapezi = new Array<>();
+        this.numberOfSides = level.getNumberOfSides();
+        for (Object o : level.getTrapezi()) {
+            trapezi.add((Trapez)o);
+        }
+        this.scrollSpeed = level.getScrollSpeed();
+
         tlast = trapezi.get(trapezi.size - 1);
         initTrapez(tlast, tlast.getStartDistance(), tlast.getSize(), angle);
         //objects to draw polygons
@@ -125,7 +129,7 @@ public class PlayScreen implements Screen {
         }
 
         //Set the colors for the game - these can be changed later
-        currColorSet = ColorSets.YELLOW_BLACK;
+        currColorSet = ColorSets.BLACK;
         colors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
             colors[i] = new Color(currColorSet[i]);
@@ -158,7 +162,7 @@ public class PlayScreen implements Screen {
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
             dispose();
-            game.setScreen(new MenuScreen(game));
+            game.setScreen(new LevelSelectScreen(game, angle));
         }
         //Press F to make fullscreen (to do - put it as an option)
         if(Gdx.input.isKeyPressed(Input.Keys.F)) {
@@ -202,7 +206,8 @@ public class PlayScreen implements Screen {
                 Vector trapezVector;
                 if(pointerRotationR <= t.getDistance()){
                     System.out.println("you died");
-                    game.dispose();
+                    dispose();
+                    game.setScreen(new LevelSelectScreen(game, angle));
                 } //now check if the pointer is colliding with right or left size of trapez
                 else if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, pointer.getXPoints()[2], pointer.getYPoints()[2])){
                     collidedRight = true;
@@ -345,33 +350,6 @@ public class PlayScreen implements Screen {
         }
         drawText("."+milliseconds, 20, viewport.getWorldWidth()-65, viewport.getWorldHeight()-43);
         drawText("Level 1", 32, 10, viewport.getWorldHeight()-8);
-    }
-
-    public void importLevel(File levelFile){
-        try {
-            FileInputStream fin = new FileInputStream(levelFile);
-            ObjectInputStream ois = new ObjectInputStream(fin);
-            trapezi = new Array<>();
-            /*while(ois.available() != -1){
-                Object t = ois.readObject();
-                trapezi.add((Trapez)t);
-            }*/
-            Level level = (Level)ois.readObject();
-            this.numberOfSides = level.getNumberOfSides();
-            Object[] trapezi = level.getTrapezi();
-            for (Object o : trapezi) {
-                this.trapezi.add((Trapez)o);
-            }
-            this.scrollSpeed = level.getScrollSpeed();
-            this.levelName = level.getName();
-
-            System.out.println("Level successfully imported");
-            ois.close();
-
-        }catch(EOFException ignored){ //ta exception nam samo pove, da je konec datoteke
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
     public float getLevelLength(){
         if(trapezi.isEmpty())

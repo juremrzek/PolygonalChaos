@@ -27,7 +27,4 @@ public class MyGdxGame extends Game {
 		System.exit(0);
 	}
 
-	public void setCurrentSceen(Game game){
-
-	}
 }
