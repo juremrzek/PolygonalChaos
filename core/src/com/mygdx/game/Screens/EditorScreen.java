@@ -18,6 +18,8 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Objects.*;
+import javafx.scene.control.ColorPicker;
+
 import java.awt.color.*;
 
 import java.io.*;
@@ -35,7 +37,6 @@ public class EditorScreen extends InputAdapter implements Screen {
     private BitmapFont font;
     private ShapeRenderer sr;
     private Icon[] icons;
-    private Icon settingsIcon;
 
     //Objects to draw polygons
     private Pixmap pixmap;
@@ -69,6 +70,7 @@ public class EditorScreen extends InputAdapter implements Screen {
     private boolean placing;
     private boolean dragging;
     private boolean deleting;
+    private boolean settings;
     private float sizeOfNewTrapez;
     private Vector2 mouse;
     private Vector3 mouseIn3D;
@@ -87,11 +89,10 @@ public class EditorScreen extends InputAdapter implements Screen {
         numberOfSides = 4;
         movingBar = false;
         movingTrapez = false;
-        placing = true;
-        dragging = true;
+
         sizeOfNewTrapez = 100;
-        levelName = "OWIewiu";
-        songName = "supergay gay gei";
+        levelName = "Anothaone";
+        songName = "ddropp";
         Gdx.input.setInputProcessor(this);
 
         scrollSpeed = 200;
@@ -99,9 +100,8 @@ public class EditorScreen extends InputAdapter implements Screen {
         viewport = new FitViewport(1280, 900, camera);
         icons = new Icon[]{new Icon(60, viewport.getWorldHeight()-60, 35, "icons/drag.png", Color.BLACK),
                 new Icon(160, viewport.getWorldHeight()-60, 35, "icons/draw.png", Color.BLACK),
-                new Icon(260, viewport.getWorldHeight()-60, 35, "icons/delete.png", Color.BLACK)};
-        //new Icon(viewport.getWorldWidth()-60, 60, 35, "icons/save.png", Color.BLACK)};
-        settingsIcon = new Icon(viewport.getWorldWidth()-80, 60, 35, "icons/settings.png", Color.BLACK);
+                new Icon(260, viewport.getWorldHeight()-60, 35, "icons/delete.png", Color.BLACK),
+                new Icon(viewport.getWorldWidth()-80, 60, 35, "icons/settings.png", Color.BLACK)};
 
         batch = new SpriteBatch();
         font = new BitmapFont(Gdx.files.internal("fonts/font.fnt"));
@@ -226,7 +226,7 @@ public class EditorScreen extends InputAdapter implements Screen {
                 if(icons[i].intersects(mouse)){
                     for(int j=0; j<icons.length; j++){
                         if(i==j)
-                            icons[j].setSelected(true);
+                            icons[j].setSelected(!icons[j].isSelected());
                         else
                             icons[j].setSelected(false);
                     }
@@ -234,8 +234,9 @@ public class EditorScreen extends InputAdapter implements Screen {
                 dragging = icons[0].isSelected();
                 placing = icons[1].isSelected();
                 deleting = icons[2].isSelected();
+                settings = icons[3].isSelected();
             }
-            if(placing && !progressIndicator.intersects(mouse) && !icons[1].intersects(mouse) && !settingsIcon.intersects(mouse)){
+            if(placing && !progressIndicator.intersects(mouse) && !icons[1].intersects(mouse) && !icons[3].intersects(mouse)){
                 //We have to find out what position is our new trapez going to have
                 boolean intersects = false;
                 Trapez nt = new Trapez(sizeOfNewTrapez, (tlast.getStartDistance() + tlast.getStartSize()) * levelTimestamp + center.distanceFrom(mouse), getMousePosition());
@@ -295,7 +296,7 @@ public class EditorScreen extends InputAdapter implements Screen {
                     }
                 }
             }
-            if(deleting && !icons[2].intersects(mouse) && !settingsIcon.intersects(mouse)) {
+            if(deleting && !icons[2].intersects(mouse) && !icons[3].intersects(mouse)) {
                 for (int i = 0; i < trapezi.size; i++) {
                     if(Intersector.isPointInPolygon(trapezi.get(i).getPoints(), 0, trapezi.get(i).getPoints().length, mouse.x, mouse.y)) {
                         trapezi.removeIndex(i);
@@ -310,6 +311,15 @@ public class EditorScreen extends InputAdapter implements Screen {
         }
         if(movingBar){
             progressIndicator.setX(mouse.x-distanceFromProgressBarToMouse);
+        }
+        if(settings){
+            sr.setColor(Color.BLACK);
+            sr.begin(ShapeRenderer.ShapeType.Filled);
+            sr.rect(90, 90, viewport.getWorldWidth()-180, viewport.getWorldHeight()-180);
+            sr.setColor(currColorSet[0]);
+            sr.rect(100, 100, viewport.getWorldWidth()-200, viewport.getWorldHeight()-200);
+            sr.end();
+            drawText("oklmao", 64, 200, 200);
         }
         for(Trapez t:trapezi) {
             if(t.getStartDistance() > tlast.getStartDistance()) {
@@ -330,6 +340,7 @@ public class EditorScreen extends InputAdapter implements Screen {
             }
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            setNumberOfSides(numberOfSides+1);
             currColorSet = ColorSets.CYAN;
             changeColor();
         }
@@ -492,12 +503,12 @@ public class EditorScreen extends InputAdapter implements Screen {
         //Draw icons
         for (Icon icon : icons)
             drawCircle(icon.getX(), icon.getY(), icon.getR(), icon.getColor());
-        drawCircle(settingsIcon.getX(), settingsIcon.getY(), settingsIcon.getR(), settingsIcon.getColor());
+        //drawCircle(icons[3].getX(), icons[3].getY(), icons[3].getR(), icons[3].getColor());
         batch.begin();
         batch.draw(icons[0].getTexture(), icons[0].getX() - 25, icons[0].getY() - 25, 45, 45);
         batch.draw(icons[1].getTexture(), icons[1].getX() - 20, icons[1].getY() - 20, 45, 45);
         batch.draw(icons[2].getTexture(), icons[2].getX() - 22, icons[2].getY() - 22, 45, 45);
-        batch.draw(settingsIcon.getTexture(), settingsIcon.getX() - 22, settingsIcon.getY() - 22, 45, 45);
+        batch.draw(icons[3].getTexture(), icons[3].getX() - 22, icons[3].getY() - 22, 45, 45);
         //batch.draw(icons[3].getTexture(), icons[3].getX()-20, icons[3].getY()-20, 45, 45);
         batch.end();
     }
@@ -596,6 +607,13 @@ public class EditorScreen extends InputAdapter implements Screen {
         float alpha = (float)(Math.PI-mouseVector.getAngle(v1));
         float gamma = (float)(Math.PI - beta - alpha);
         return (float)(mouseVector.getLength()/Math.sin(beta) * Math.sin(gamma));
+    }
+    private void setNumberOfSides(int numberOfSides){
+        this.numberOfSides = numberOfSides;
+        for(int i=0; i<middleHexagon.length; i++) {
+            middleHexagon[i] = new Polygon(new float[numberOfSides], new float[numberOfSides], 70);
+            middleHexagon[i].setCenter(center.x, center.y);
+        }
     }
 
     @Override

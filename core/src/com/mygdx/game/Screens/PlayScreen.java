@@ -155,6 +155,12 @@ public class PlayScreen implements Screen {
     }
     private void update(float delta){
         dt = delta;
+
+        /*AudioManager audioManager = (AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
+        int volumeLevel = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        int maxVolumeLevel = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        int volumePercent = (int) (((float) volumeLevel / maxVolumeLevel) * 100);*/
+
         if(!trapezi.isEmpty())
             tlast = trapezi.get(trapezi.size - 1);
         if(levelTimestamp <= 1)
