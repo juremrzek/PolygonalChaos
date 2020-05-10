@@ -129,7 +129,7 @@ public class PlayScreen implements Screen {
         }
 
         //Set the colors for the game - these can be changed later
-        currColorSet = ColorSets.BLACK;
+        currColorSet = ColorSets.CYAN;
         colors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
             colors[i] = new Color(currColorSet[i]);
@@ -335,6 +335,8 @@ public class PlayScreen implements Screen {
             seconds = passedTime / 1000000000; //conversion from nanoseconds to seconds
             milliseconds = (passedTime - seconds * 1000000000) / 100000000;
         }
+        seconds = 23;
+        milliseconds = 12;
         drawScreenBox(false,300, 50, 20);
         String secondsString;
         if(seconds >= 10)

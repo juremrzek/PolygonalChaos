@@ -86,7 +86,7 @@ public class EditorScreen extends InputAdapter implements Screen {
     @Override
     public void show() {
         angle = 0;
-        numberOfSides = 4;
+        numberOfSides = 8;
         movingBar = false;
         movingTrapez = false;
 
@@ -340,7 +340,7 @@ public class EditorScreen extends InputAdapter implements Screen {
             }
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            setNumberOfSides(numberOfSides+1);
+            setNumberOfSides(numberOfSides-1);
             currColorSet = ColorSets.CYAN;
             changeColor();
         }
@@ -581,11 +581,6 @@ public class EditorScreen extends InputAdapter implements Screen {
     }
 
     @Override
-    public void resize(int width, int height) {
-        viewport.update(width, height, true);
-    }
-
-    @Override
     public void pause() {
 
     }
@@ -598,6 +593,10 @@ public class EditorScreen extends InputAdapter implements Screen {
     @Override
     public void hide() {
 
+    }
+    @Override
+    public void resize(int width, int height) {
+        viewport.update(width, height, true);
     }
     public float getDistanceFromTrapezSideToCenter(Trapez t){
         Vector v1 = new Vector(new Point(t.getXPoints()[0], t.getYPoints()[0]), center);
@@ -615,19 +614,6 @@ public class EditorScreen extends InputAdapter implements Screen {
             middleHexagon[i].setCenter(center.x, center.y);
         }
     }
-
-    @Override
-    public boolean scrolled(int amount){
-        if(amount == 1)
-            progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth*15);
-        if(amount == -1)
-            progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth*15);
-        return false;
-    }
-    @Override
-    public boolean mouseMoved(int screenX, int screenY){
-        return false;
-    }
     private void drawPolygon(float [] points, Color color){
         pixmap.setColor(color);
         pixmap.fill();
@@ -640,6 +626,18 @@ public class EditorScreen extends InputAdapter implements Screen {
         polyBatch.draw(polyReg, 2, 2);
         polyBatch.end();
         textureSolid.dispose();
+    }
+    @Override
+    public boolean scrolled(int amount){
+        if(amount == 1)
+            progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth*15);
+        if(amount == -1)
+            progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth*15);
+        return false;
+    }
+    @Override
+    public boolean mouseMoved(int screenX, int screenY){
+        return false;
     }
     @Override
     public void dispose() {
