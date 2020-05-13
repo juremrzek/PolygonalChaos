@@ -40,6 +40,7 @@ public class MenuScreen implements Screen {
     private BitmapFont font;
     private OrthographicCamera camera;
     private FitViewport viewport;
+    private GlyphLayout layout;
 
     public MenuScreen(MyGdxGame game){
         this.game = game;
@@ -107,7 +108,7 @@ public class MenuScreen implements Screen {
             colorActions[i].setDuration(1);
             colorActions[i].setEndColor(newColors[i]);
         }
-        GlyphLayout layout = new GlyphLayout(font, "a a");
+        layout = new GlyphLayout(font, "");
         textWidth = layout.width/3;
     }
 
@@ -255,22 +256,31 @@ public class MenuScreen implements Screen {
         drawPolygon(p.getPoints(), color);
     }
 
-    private void drawText(String text, float size, float x, float y, Color color){
+    public void drawText(String s, float size, float x, float y, Color color) {
+        batch.begin();
+        batch.setProjectionMatrix(camera.combined);
+        font.setColor(color);
+        font.getData().setScale(size/64); //The non-scaled font is size of 64px, we scale it based on size
+        font.draw(batch, s, x, y);
+        batch.end();
+    }
+    public void drawCenteredText(String s, float size, float y, Color color){
         batch.begin();
         batch.setProjectionMatrix(camera.combined);
         font.setColor(color);
         font.getData().setScale(size/64);
-        font.draw(batch, text, x, y);
+        layout.setText(font, s);
+        font.draw(batch, s, center.x-layout.width/2, y);
         batch.end();
     }
 
 
     private void drawMenuContent(){
-        drawText("POLYGONAL", 105, 100, viewport.getWorldHeight()-120, colors[0]);
-        drawText("CHAOS", 64, center.x-185, viewport.getWorldHeight()-240, colors[0]);
+        drawCenteredText("POLYGONAL", 105, viewport.getWorldHeight()-120, colors[0]);
+        drawCenteredText("CHAOS", 64, viewport.getWorldHeight()-240, colors[0]);
         drawPolygon(menuTrapez.getPoints(), colors[0]);
-        drawText(options[optionFlag], 46, center.x-textWidth*options[optionFlag].length()*(46f/64)/2f, viewport.getWorldHeight()-560, colors[3]);
-        drawText("press space to select", 38, 175, 100, colors[0]);
+        drawCenteredText(options[optionFlag], 46, viewport.getWorldHeight()-560, colors[3]);
+        drawCenteredText("press space to select", 38, 100, colors[0]);
         Polygon pointer = new Polygon(new float[3], new float[3], 30);
         drawEquilateralPolygon(pointer, 3, pointer.getR(), center.x-335, center.y-140, colors[0], 180);
         pointer = new Polygon(new float[3], new float[3], 30);

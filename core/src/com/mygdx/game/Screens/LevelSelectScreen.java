@@ -45,6 +45,7 @@ public class LevelSelectScreen implements Screen {
     private Level[] levels;
     private Level displayedLevel;
     private int displayedLevelIndex;
+    private GlyphLayout layout;
 
     public LevelSelectScreen(MyGdxGame game, float angle){
         this.game = game;
@@ -102,9 +103,7 @@ public class LevelSelectScreen implements Screen {
             middleHexagon[i] = new Polygon(new float[numberOfSides], new float[numberOfSides], 70);
             middleHexagon[i].setCenter(center.x, center.y);
         }
-
-        GlyphLayout layout = new GlyphLayout(font, "a ");
-        textWidth = layout.width/2;
+        layout = new GlyphLayout();
     }
 
     @Override
@@ -122,14 +121,10 @@ public class LevelSelectScreen implements Screen {
         sr.end();
         drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[0].getR()+10, center.x, center.y-120, colorActions[0].getColor(), angle);
         drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y-120, colorActions[1].getColor(), angle);
-        String s = "Levels";
-        drawText(s, 52, center.x-textWidth*s.length()*(52f/64)/2, viewport.getWorldHeight()-30, colors[0]);
-        s = displayedLevel.getName();
-        drawText(s, 64, center.x-textWidth*s.length()/2, viewport.getWorldHeight()-180, colors[0]);
-        s = "progress: "+displayedLevel.getProgress();
-        drawText(s, 32, center.x-textWidth*s.length()/4, viewport.getWorldHeight()-320, colors[0]);
-        s = "song: "+displayedLevel.getSongName();
-        drawText(s, 32, center.x-textWidth*s.length()/4, viewport.getWorldHeight()-380, colors[0]);
+        drawCenteredText("Levels", 52, viewport.getWorldHeight()-30, colors[0]);
+        drawCenteredText(displayedLevel.getName(), 64, viewport.getWorldHeight()-180, colors[0]);
+        drawCenteredText("progress: "+displayedLevel.getProgress(), 32, viewport.getWorldHeight()-320, colors[0]);
+        drawCenteredText("song: "+displayedLevel.getSongName(), 32, viewport.getWorldHeight()-380, colors[0]);
         update(delta);
     }
 
@@ -247,12 +242,21 @@ public class LevelSelectScreen implements Screen {
         }
         drawPolygon(p.getPoints(), color);
     }
-    public void drawText(String text, float size, float x, float y, Color color) {
+    public void drawText(String s, float size, float x, float y, Color color) {
         batch.begin();
         batch.setProjectionMatrix(camera.combined);
         font.setColor(color);
         font.getData().setScale(size/64); //The non-scaled font is size of 64px, we scale it based on size
-        font.draw(batch, text, x, y);
+        font.draw(batch, s, x, y);
+        batch.end();
+    }
+    public void drawCenteredText(String s, float size, float y, Color color){
+        batch.begin();
+        batch.setProjectionMatrix(camera.combined);
+        font.setColor(color);
+        font.getData().setScale(size/64);
+        layout.setText(font, s);
+        font.draw(batch, s, center.x-layout.width/2, y);
         batch.end();
     }
 

@@ -18,7 +18,6 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Objects.*;
-import javafx.scene.control.ColorPicker;
 
 import java.awt.color.*;
 
@@ -526,7 +525,8 @@ public class EditorScreen extends InputAdapter implements Screen {
     public float getLevelLength(){
         if(trapezi.isEmpty())
             return 0;
-        else return tlast.getStartDistance()/scrollSpeed;
+        System.out.println(tlast.getStartDistance()/scrollSpeed);
+        return tlast.getStartDistance()/scrollSpeed;
     }
     public int getMousePosition(){
         int position;
