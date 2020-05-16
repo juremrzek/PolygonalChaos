@@ -14,8 +14,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Objects.*;
 
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
+import java.io.*;
 
 public class LevelSelectScreen implements Screen {
     private MyGdxGame game;
@@ -40,34 +39,35 @@ public class LevelSelectScreen implements Screen {
     private Color[] newColors;
     private Color[] currColorSet;
     private ColorAction[] colorActions;
-    private float textWidth;
 
     private Level[] levels;
     private Level displayedLevel;
     private int displayedLevelIndex;
     private GlyphLayout layout;
 
-    public LevelSelectScreen(MyGdxGame game, float angle){
+    public LevelSelectScreen(MyGdxGame game, float angle, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
         this.game = game;
         this.angle = angle;
+        this.batch = batch;
+        this.font = font;
+        this.sr = sr;
     }
     @Override
     public void show() {
         //getLevels();
         importLevels();
-        //levels[0] = new Level("Superhexogner", 5, 0.45f, "Some Song lmao ded dd");
-        //levels[1] = new Level("oklmao 2", 4, 0.8f, "Galaxy collapse");
-        //levels[2] = new Level("Some other name", 8, 0.113135f, "For the love of god");
         displayedLevelIndex = 0;
-        displayedLevel = levels[displayedLevelIndex];
-        numberOfSides = displayedLevel.getNumberOfSides();
+        if(levels.length != 0) {
+            displayedLevel = levels[displayedLevelIndex];
+            numberOfSides = displayedLevel.getNumberOfSides();
+        }
+        else{
+            numberOfSides = 12;
+        }
 
 
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
-        batch = new SpriteBatch();
-        font = new BitmapFont(Gdx.files.internal("fonts/font.fnt"));
-        font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
         sr = new ShapeRenderer();
 
@@ -119,35 +119,43 @@ public class LevelSelectScreen implements Screen {
         sr.triangle(120, center.y-410, 120, center.y-290, 60, center.y-350);
         sr.triangle(viewport.getWorldWidth()-120, center.y-410, viewport.getWorldWidth()-120, center.y-290, viewport.getWorldWidth()-60, center.y-350);
         sr.end();
-        drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[0].getR()+10, center.x, center.y-120, colorActions[0].getColor(), angle);
-        drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y-120, colorActions[1].getColor(), angle);
-        drawCenteredText("Levels", 52, viewport.getWorldHeight()-30, colors[0]);
-        drawCenteredText(displayedLevel.getName(), 64, viewport.getWorldHeight()-180, colors[0]);
-        drawCenteredText("progress: "+displayedLevel.getProgress(), 32, viewport.getWorldHeight()-320, colors[0]);
-        drawCenteredText("song: "+displayedLevel.getSongName(), 32, viewport.getWorldHeight()-380, colors[0]);
+        if(levels.length != 0) {
+            drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[0].getR() + 10, center.x, center.y - 120, colorActions[0].getColor(), angle);
+            drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y - 120, colorActions[1].getColor(), angle);
+            drawCenteredText("Levels", 52, viewport.getWorldHeight() - 30, colors[0]);
+            drawCenteredText(displayedLevel.getName(), 64, viewport.getWorldHeight() - 180, colors[0]);
+            drawCenteredText("progress: " + displayedLevel.getProgress(), 32, viewport.getWorldHeight() - 320, colors[0]);
+            drawCenteredText("song: " + displayedLevel.getSongName(), 32, viewport.getWorldHeight() - 380, colors[0]);
+        }
+        else
+            drawCenteredText("No levels yet", 64, viewport.getWorldHeight()/2+200, colors[0]);
         update(delta);
     }
 
     public void update(float dt){
-        displayedLevel = levels[displayedLevelIndex];
-        numberOfSides = displayedLevel.getNumberOfSides();
+        if(levels.length != 0) {
+            displayedLevel = levels[displayedLevelIndex];
+            numberOfSides = displayedLevel.getNumberOfSides();
+        }
         for(int i=0; i<middleHexagon.length; i++) {
             middleHexagon[i] = new Polygon(new float[numberOfSides], new float[numberOfSides], 70);
             middleHexagon[i].setCenter(center.x, center.y);
         }
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
-            game.setScreen(new MenuScreen(game));
+            dispose();
+            game.setScreen(new MenuScreen(game, batch, font, sr));
         }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
-            game.setScreen(new PlayScreen(game, displayedLevel));
+        if((Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) && levels.length != 0){
+            dispose();
+            game.setScreen(new PlayScreen(game, displayedLevel, batch, font, sr));
         }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.A) || Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+        if(Gdx.input.isKeyJustPressed(Input.Keys.A) || Gdx.input.isKeyJustPressed(Input.Keys.LEFT) && levels.length != 0) {
             displayedLevelIndex--;
             if(displayedLevelIndex<0)
                 displayedLevelIndex = levels.length-1;
         }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.D) || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+        if(Gdx.input.isKeyJustPressed(Input.Keys.D) || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) && levels.length != 0) {
             displayedLevelIndex++;
             if(displayedLevelIndex>levels.length-1)
                 displayedLevelIndex = 0;
@@ -219,12 +227,15 @@ public class LevelSelectScreen implements Screen {
         }
     }
     private void importLevels(){
-        FileHandle fh = Gdx.files.internal("core/assets/levels");
-        FileHandle[] fileNames = fh.list();
-        levels = new Level[fileNames.length];
-        for(int i=0; i<fileNames.length; i++){
+        FileHandle fh = Gdx.files.local("levels");
+        FileHandle[] files = fh.list();
+        levels = new Level[files.length];
+        if(levels.length == 0){
+            return;
+        }
+        for(int i=0; i<files.length; i++){
             try {
-                FileInputStream fin = new FileInputStream(fileNames[i].toString());
+                FileInputStream fin = new FileInputStream(files[i].toString());
                 ObjectInputStream ois = new ObjectInputStream(fin);
                 Level level = (Level) ois.readObject();
                 ois.close();
@@ -242,14 +253,6 @@ public class LevelSelectScreen implements Screen {
         }
         drawPolygon(p.getPoints(), color);
     }
-    public void drawText(String s, float size, float x, float y, Color color) {
-        batch.begin();
-        batch.setProjectionMatrix(camera.combined);
-        font.setColor(color);
-        font.getData().setScale(size/64); //The non-scaled font is size of 64px, we scale it based on size
-        font.draw(batch, s, x, y);
-        batch.end();
-    }
     public void drawCenteredText(String s, float size, float y, Color color){
         batch.begin();
         batch.setProjectionMatrix(camera.combined);
@@ -262,9 +265,5 @@ public class LevelSelectScreen implements Screen {
 
     @Override
     public void dispose() {
-        game.dispose();
-        batch.dispose();
-        font.dispose();
-        sr.dispose();
     }
 }

@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.scenes.scene2d.actions.ColorAction;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -26,7 +27,6 @@ public class MenuScreen implements Screen {
     private long startTime;
     private String[] options;
     private int optionFlag;
-    private float textWidth;
     private Trapez menuTrapez;
 
     //To draw polygons(for bg)
@@ -38,12 +38,16 @@ public class MenuScreen implements Screen {
 
     private SpriteBatch batch;
     private BitmapFont font;
+    private ShapeRenderer sr;
     private OrthographicCamera camera;
     private FitViewport viewport;
     private GlyphLayout layout;
 
-    public MenuScreen(MyGdxGame game){
+    public MenuScreen(MyGdxGame game, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
         this.game = game;
+        this.batch = batch;
+        this.font = font;
+        this.sr = sr;
     }
 
     @Override
@@ -61,9 +65,6 @@ public class MenuScreen implements Screen {
 
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
-        batch = new SpriteBatch();
-        font = new BitmapFont(Gdx.files.internal("fonts/font.fnt"));
-        font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
         menuTrapez = new Trapez(150, 400, numberOfSides/4);
         initTrapez(menuTrapez, menuTrapez.getDistance(), menuTrapez.getSize(), 60);
@@ -109,7 +110,6 @@ public class MenuScreen implements Screen {
             colorActions[i].setEndColor(newColors[i]);
         }
         layout = new GlyphLayout(font, "");
-        textWidth = layout.width/3;
     }
 
     @Override
@@ -138,9 +138,15 @@ public class MenuScreen implements Screen {
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)){
             switch(optionFlag){
-                case 0: game.setScreen(new LevelSelectScreen(game, angle));
+                case 0: {
+                    dispose();
+                    game.setScreen(new LevelSelectScreen(game, angle, batch, font, sr));
+                }
                 break;
-                case 1: game.setScreen(new EditorScreen(game));
+                case 1:{
+                    dispose();
+                    game.setScreen(new EditorScreen(game, batch, font, sr));
+                }
                 break;
                 case 4: game.dispose();
                 break;
@@ -255,15 +261,6 @@ public class MenuScreen implements Screen {
         }
         drawPolygon(p.getPoints(), color);
     }
-
-    public void drawText(String s, float size, float x, float y, Color color) {
-        batch.begin();
-        batch.setProjectionMatrix(camera.combined);
-        font.setColor(color);
-        font.getData().setScale(size/64); //The non-scaled font is size of 64px, we scale it based on size
-        font.draw(batch, s, x, y);
-        batch.end();
-    }
     public void drawCenteredText(String s, float size, float y, Color color){
         batch.begin();
         batch.setProjectionMatrix(camera.combined);
@@ -273,7 +270,6 @@ public class MenuScreen implements Screen {
         font.draw(batch, s, center.x-layout.width/2, y);
         batch.end();
     }
-
 
     private void drawMenuContent(){
         drawCenteredText("POLYGONAL", 105, viewport.getWorldHeight()-120, colors[0]);
@@ -292,7 +288,5 @@ public class MenuScreen implements Screen {
         pixmap.dispose();
         polyBatch.dispose();
         textureSolid.dispose();
-        batch.dispose();
-        font.dispose();
     }
 }

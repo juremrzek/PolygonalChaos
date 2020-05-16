@@ -1,5 +1,7 @@
 package com.mygdx.game.desktop;
 
+import com.badlogic.gdx.Files;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.mygdx.game.MyGdxGame;
@@ -9,6 +11,12 @@ public class DesktopLauncher {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.width = 1280;
 		config.height = 900;
+		config.title = "Polygonal Chaos";
+		config.fullscreen = true;
+		config.resizable = true;
+		config.addIcon("icon-128.png", Files.FileType.Internal);
+		config.addIcon("icon-32.png", Files.FileType.Internal);
+		config.addIcon("icon-16.png", Files.FileType.Internal); //LibGDX sam poskrbi, kdaj uporabiti kakšno velikost
 		new LwjglApplication(new MyGdxGame(), config);
 	}
 }

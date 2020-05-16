@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -78,22 +79,26 @@ public class EditorScreen extends InputAdapter implements Screen {
     private Circle progressIndicator;
     private Music music;
 
-    public EditorScreen(MyGdxGame game){
+    public EditorScreen(MyGdxGame game, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
         this.game = game;
+        this.batch = batch;
+        this.font = font;
+        this.sr = sr;
     }
 
     @Override
     public void show() {
         angle = 0;
-        numberOfSides = 8;
+        numberOfSides = 4;
         movingBar = false;
         movingTrapez = false;
 
         sizeOfNewTrapez = 100;
-        levelName = "Anothaone";
-        songName = "ddropp";
-        Gdx.input.setInputProcessor(this);
+        levelName = "Final level";
+        songName = "final music";
+        currColorSet = ColorSets.CYAN;
 
+        Gdx.input.setInputProcessor(this);
         scrollSpeed = 200;
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
@@ -102,11 +107,6 @@ public class EditorScreen extends InputAdapter implements Screen {
                 new Icon(260, viewport.getWorldHeight()-60, 35, "icons/delete.png", Color.BLACK),
                 new Icon(viewport.getWorldWidth()-80, 60, 35, "icons/settings.png", Color.BLACK)};
 
-        batch = new SpriteBatch();
-        font = new BitmapFont(Gdx.files.internal("fonts/font.fnt"));
-        font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
-        sr = new ShapeRenderer();
-        sr.setColor(Color.BLACK);
         music = Gdx.audio.newMusic(Gdx.files.internal("music/shaman_gravity.mp3"));
         //music.setVolume(0.1f);
         //music.play();
@@ -139,7 +139,6 @@ public class EditorScreen extends InputAdapter implements Screen {
         trapezi = new Array<>();
 
         //Set the colors for the game - these can be changed later
-        currColorSet = ColorSets.BROWN;
         colors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
             colors[i] = new Color(currColorSet[i]);
@@ -156,6 +155,7 @@ public class EditorScreen extends InputAdapter implements Screen {
             colorActions[i].setDuration(1);
             colorActions[i].setEndColor(newColors[i]);
         }
+        font.setColor(colors[0]);
     }
 
     @Override
@@ -208,7 +208,8 @@ public class EditorScreen extends InputAdapter implements Screen {
                 }
             }
             exportLevel();
-            game.setScreen(new MenuScreen(game));
+            dispose();
+            game.setScreen(new MenuScreen(game, batch, font, sr));
         }
         if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D))
             progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
@@ -220,7 +221,6 @@ public class EditorScreen extends InputAdapter implements Screen {
                 movingBar = true;
                 distanceFromProgressBarToMouse = mouse.x - progressIndicator.getX();
             }
-            //System.out.println(mouse.x + " " + icons[0].getX() +" "+ mouse.distanceFrom(new Point(icons[0].getX(), icons[0].getY())));
             for(int i=0; i<icons.length; i++){
                 if(icons[i].intersects(mouse)){
                     for(int j=0; j<icons.length; j++){
@@ -318,7 +318,7 @@ public class EditorScreen extends InputAdapter implements Screen {
             sr.setColor(currColorSet[0]);
             sr.rect(100, 100, viewport.getWorldWidth()-200, viewport.getWorldHeight()-200);
             sr.end();
-            drawText("oklmao", 64, 200, 200);
+            drawText(" ", 64, 200, 200);
         }
         for(Trapez t:trapezi) {
             if(t.getStartDistance() > tlast.getStartDistance()) {
@@ -344,9 +344,8 @@ public class EditorScreen extends InputAdapter implements Screen {
             changeColor();
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.P)) {
-            File f = new File("core/assets/levels/" + levelName + ".lvl");
-            if(f.exists())
-                importLevel(f);
+            FileHandle fileHandle = Gdx.files.local("levels/"+levelName+".lvl");
+                importLevel(fileHandle);
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.FORWARD_DEL)){
             for(int i=0; i<trapezi.size; i++){
@@ -508,7 +507,6 @@ public class EditorScreen extends InputAdapter implements Screen {
         batch.draw(icons[1].getTexture(), icons[1].getX() - 20, icons[1].getY() - 20, 45, 45);
         batch.draw(icons[2].getTexture(), icons[2].getX() - 22, icons[2].getY() - 22, 45, 45);
         batch.draw(icons[3].getTexture(), icons[3].getX() - 22, icons[3].getY() - 22, 45, 45);
-        //batch.draw(icons[3].getTexture(), icons[3].getX()-20, icons[3].getY()-20, 45, 45);
         batch.end();
     }
     private void changeColor(){
@@ -525,7 +523,6 @@ public class EditorScreen extends InputAdapter implements Screen {
     public float getLevelLength(){
         if(trapezi.isEmpty())
             return 0;
-        System.out.println(tlast.getStartDistance()/scrollSpeed);
         return tlast.getStartDistance()/scrollSpeed;
     }
     public int getMousePosition(){
@@ -547,31 +544,31 @@ public class EditorScreen extends InputAdapter implements Screen {
     public void exportLevel() {
         try {
             Level level = new Level(levelName, numberOfSides, getLevelLength(), trapezi.toArray(), ColorSets.toString(currColorSet), scrollSpeed, songName);
-            FileOutputStream fos = new FileOutputStream("core/assets/levels/" + levelName + ".lvl");
+            FileHandle fileHandle= Gdx.files.local("levels/"+levelName+".lvl");
+            FileOutputStream fos = new FileOutputStream(fileHandle.file());
             ObjectOutputStream ous = new ObjectOutputStream(fos);
-            /*for(Trapez t:trapezi) {
-                ous.writeObject(t);
-            }*/
             ous.writeObject(level);
+            fos.close();
             ous.close();
-            System.out.println("Level exported to core/assets/levels");
+            System.out.println("Level exported");
         } catch (Exception e) {
             System.out.println("An error has occurred");
             e.printStackTrace();
         }
     }
 
-    public void importLevel(File levelFile){
+    public void importLevel(FileHandle fileHandle){
         try {
-            FileInputStream fin = new FileInputStream(levelFile);
-            ObjectInputStream ois = new ObjectInputStream(fin);
             trapezi = new Array<>();
-            while(ois.available() != -1){
-                Object t = ois.readObject();
-                trapezi.add((Trapez)t);
+            FileInputStream fin = new FileInputStream(fileHandle.file());
+            ObjectInputStream ois = new ObjectInputStream(fin);
+            Level level = (Level) ois.readObject();
+            Object [] currTrapezi = level.getTrapezi();
+            for (Object o : currTrapezi) {
+                trapezi.add((Trapez) o);
             }
             System.out.println("Level successfully imported");
-            tlast = trapezi.get(trapezi.size);
+            tlast = trapezi.get(trapezi.size-1);
             ois.close();
 
         }catch(EOFException ignore) { //ta exception nam samo pove, da je konec datoteke
@@ -644,11 +641,6 @@ public class EditorScreen extends InputAdapter implements Screen {
         pixmap.dispose();
         polyBatch.dispose();
         textureSolid.dispose();
-        //game.dispose();
-        batch.dispose();
-        font.dispose();
-        sr.dispose();
-        //music.stop();
         music.dispose();
     }
 }

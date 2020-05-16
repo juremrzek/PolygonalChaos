@@ -17,11 +17,6 @@ import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Objects.*;
 import com.badlogic.gdx.math.Intersector;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
-
 public class PlayScreen implements Screen {
 
     private float dt; //deltatime
@@ -52,7 +47,7 @@ public class PlayScreen implements Screen {
     private int rotateSpeed;
     private float scrollSpeed;
     private Color[] colors;
-    private Color[] currColorSet;
+    private String[] currColorSet;
     private float levelTimestamp;
     private long startTime; //time when the screen was shown
     private float timestampSpeed;
@@ -66,9 +61,12 @@ public class PlayScreen implements Screen {
     private Point center;
     private Music music;
 
-    public PlayScreen(MyGdxGame game, Level level){
+    public PlayScreen(MyGdxGame game, Level level, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
         this.game = game;
         this.level = level;
+        this.batch = batch;
+        this.font = font;
+        this.sr = sr;
     }
 
     @Override
@@ -78,15 +76,10 @@ public class PlayScreen implements Screen {
         seconds = 0;
         milliseconds = 0;
         levelTimestamp = 0;
-        rotateSpeed = 200;
+        rotateSpeed = 50;
 
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
-        batch = new SpriteBatch();
-        font = new BitmapFont(Gdx.files.internal("fonts/font.fnt"));
-        font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
-        sr = new ShapeRenderer();
-        sr.setColor(Color.BLACK);
         //Set the center of the screen as a point
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
 
@@ -111,7 +104,7 @@ public class PlayScreen implements Screen {
 
         music = Gdx.audio.newMusic(Gdx.files.internal("music/super_hexagonest.mp3"));
         music.setVolume(0.4f);
-        music.play();
+        //music.play();
 
         middleHexagon = new Polygon[2];
         for(int i=0; i<middleHexagon.length; i++) {
@@ -129,11 +122,12 @@ public class PlayScreen implements Screen {
         }
 
         //Set the colors for the game - these can be changed later
-        currColorSet = ColorSets.CYAN;
+        currColorSet = level.getColorSet();
         colors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
-            colors[i] = new Color(currColorSet[i]);
+            colors[i] = new Color(ColorSets.getColorFromHex(currColorSet[i]));
         }
+        font.setColor(colors[0]);
     }
 
     @Override
@@ -156,11 +150,6 @@ public class PlayScreen implements Screen {
     private void update(float delta){
         dt = delta;
 
-        /*AudioManager audioManager = (AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
-        int volumeLevel = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-        int maxVolumeLevel = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-        int volumePercent = (int) (((float) volumeLevel / maxVolumeLevel) * 100);*/
-
         if(!trapezi.isEmpty())
             tlast = trapezi.get(trapezi.size - 1);
         if(levelTimestamp <= 1)
@@ -168,7 +157,7 @@ public class PlayScreen implements Screen {
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
             dispose();
-            game.setScreen(new LevelSelectScreen(game, angle));
+            game.setScreen(new LevelSelectScreen(game, angle, batch, font, sr));
         }
         //Press F to make fullscreen (to do - put it as an option)
         if(Gdx.input.isKeyPressed(Input.Keys.F)) {
@@ -181,10 +170,6 @@ public class PlayScreen implements Screen {
                 game.fullscreen = true;
             }
         }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.S)) {
-            game.setScreen(new EditorScreen(game));
-        }
-
         for(int i=0; i<trapezi.size; i++){
             Trapez t = trapezi.get(i);
             t.setDistance(t.getStartDistance() - (tlast.getStartDistance()+tlast.getStartSize())*levelTimestamp);
@@ -213,7 +198,7 @@ public class PlayScreen implements Screen {
                 if(pointerRotationR <= t.getDistance()){
                     System.out.println("you died");
                     dispose();
-                    game.setScreen(new LevelSelectScreen(game, angle));
+                    game.setScreen(new LevelSelectScreen(game, angle, batch, font, sr));
                 } //now check if the pointer is colliding with right or left size of trapez
                 else if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, pointer.getXPoints()[2], pointer.getYPoints()[2])){
                     collidedRight = true;
@@ -335,8 +320,6 @@ public class PlayScreen implements Screen {
             seconds = passedTime / 1000000000; //conversion from nanoseconds to seconds
             milliseconds = (passedTime - seconds * 1000000000) / 100000000;
         }
-        seconds = 23;
-        milliseconds = 12;
         drawScreenBox(false,300, 50, 20);
         String secondsString;
         if(seconds >= 10)
@@ -402,10 +385,7 @@ public class PlayScreen implements Screen {
         pixmap.dispose();
         polyBatch.dispose();
         textureSolid.dispose();
-        batch.dispose();
-        font.dispose();
-        music.stop();
+        //music.stop();
         music.dispose();
-        sr.dispose();
     }
 }

@@ -83,4 +83,11 @@ public class ColorSets implements Serializable {
         }
         return s;
     }
+    public static Color getColorFromHex (String hex) {
+        int red = Integer.valueOf(hex.substring(0, 2), 16);
+        int green = Integer.valueOf(hex.substring(2, 4), 16);
+        int blue = Integer.valueOf(hex.substring(4, 6), 16);
+        int alpha = hex.length() != 8 ? 255 : Integer.valueOf(hex.substring(6, 8), 16);
+        return new Color(red/255f, green/255f, blue/255f, alpha/255f);
+    }
 }
