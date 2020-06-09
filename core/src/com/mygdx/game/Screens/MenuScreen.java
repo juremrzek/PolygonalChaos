@@ -7,6 +7,9 @@ import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.EarClippingTriangulator;
+import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.actions.ColorAction;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
@@ -21,7 +24,6 @@ public class MenuScreen implements Screen {
     private Color[] currColorSet;
     private int colorSetIndex;
     private int numberOfColorSets;
-    private Color[][] colorSets;
     private ColorAction[] colorActions;
     private Point center;
     private long startTime;
@@ -42,6 +44,9 @@ public class MenuScreen implements Screen {
     private OrthographicCamera camera;
     private FitViewport viewport;
     private GlyphLayout layout;
+
+    private Vector2 mouse;
+    private Vector3 mouseIn3D;
 
     public MenuScreen(MyGdxGame game, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
         this.game = game;
@@ -67,6 +72,9 @@ public class MenuScreen implements Screen {
         viewport = new FitViewport(1280, 900, camera);
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
         menuTrapez = new Trapez(150, 400, numberOfSides/4);
+        mouseIn3D = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        viewport.unproject(mouseIn3D);
+        mouse = new Vector2(mouseIn3D.x, mouseIn3D.y);
         initTrapez(menuTrapez, menuTrapez.getDistance(), menuTrapez.getSize(), 60);
 
         //objects to draw polygons
@@ -79,24 +87,24 @@ public class MenuScreen implements Screen {
         poly = new PolygonSprite(polyReg);
 
         numberOfColorSets = 8;
-        colorSets = new Color[numberOfColorSets][];
-        colorSets[0] = ColorSets.BROWN;
-        colorSets[1] = ColorSets.YELLOW_BLACK;
-        colorSets[2] = ColorSets.GREEN;
-        colorSets[3] = ColorSets.PURPLE;
-        colorSets[4] = ColorSets.CYAN;
-        colorSets[5] = ColorSets.WHITE_GRAY;
-        colorSets[6] = ColorSets.YELLOW;
-        colorSets[7] = ColorSets.PINK;
+        ColorSets.colorSets = new Color[numberOfColorSets][];
+        ColorSets.colorSets[0] = ColorSets.BROWN;
+        ColorSets.colorSets[1] = ColorSets.YELLOW_BLACK;
+        ColorSets.colorSets[2] = ColorSets.GREEN;
+        ColorSets.colorSets[3] = ColorSets.PURPLE;
+        ColorSets.colorSets[4] = ColorSets.CYAN;
+        ColorSets.colorSets[5] = ColorSets.GRAY;
+        ColorSets.colorSets[6] = ColorSets.YELLOW;
+        ColorSets.colorSets[7] = ColorSets.PINK;
 
         colorSetIndex = 0;
-        currColorSet = colorSets[colorSetIndex];
+        currColorSet = ColorSets.colorSets[colorSetIndex];
         colors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
             colors[i] = new Color(currColorSet[i]);
         }
         colorSetIndex++;
-        currColorSet = colorSets[colorSetIndex];
+        currColorSet = ColorSets.colorSets[colorSetIndex];
         newColors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
             newColors[i] = new Color(currColorSet[i]);
@@ -119,12 +127,18 @@ public class MenuScreen implements Screen {
         for(ColorAction colorAction : colorActions) {
             colorAction.act(delta);
         }
+        mouseIn3D.x = Gdx.input.getX();
+        mouseIn3D.y = Gdx.input.getY();
+        mouseIn3D.z = 0;
+        viewport.unproject(mouseIn3D);
+        mouse.x = mouseIn3D.x;
+        mouse.y = mouseIn3D.y;
         drawBackground();
         drawMenuContent();
         update(delta);
     }
     public void update(float dt){
-        if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
+        if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) || Gdx.input.isKeyJustPressed(Input.Keys.Q)){
             game.dispose();
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.LEFT)){
@@ -136,6 +150,21 @@ public class MenuScreen implements Screen {
             optionFlag++;
             optionFlag %= options.length;
         }
+        Polygon pointer = new Polygon(new float[3], new float[3], 30);
+        drawEquilateralPolygon(pointer, 3, pointer.getR(), center.x-335, center.y-140, colors[0], 180);
+        Polygon pointer2 = new Polygon(new float[3], new float[3], 30);
+        drawEquilateralPolygon(pointer2, 3, pointer.getR(), center.x+335, center.y-140, colors[0], 0);
+        if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+            if(Intersector.isPointInPolygon(pointer.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
+                optionFlag--;
+            }
+            if(Intersector.isPointInPolygon(pointer2.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
+                optionFlag++;
+            }
+            if(optionFlag < 0)
+                optionFlag = options.length-1;
+            optionFlag %= options.length;
+        }
         if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)){
             switch(optionFlag){
                 case 0: {
@@ -145,7 +174,7 @@ public class MenuScreen implements Screen {
                 break;
                 case 1:{
                     dispose();
-                    game.setScreen(new EditorScreen(game, batch, font, sr));
+                    game.setScreen(new EditSelectScreen(game, angle, batch, font, sr));
                 }
                 break;
                 case 4: game.dispose();
@@ -212,7 +241,7 @@ public class MenuScreen implements Screen {
     }
 
     private void changeColor(){
-        currColorSet = colorSets[colorSetIndex];
+        currColorSet = ColorSets.colorSets[colorSetIndex];
         newColors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
             newColors[i] = new Color(currColorSet[i]);
@@ -277,10 +306,6 @@ public class MenuScreen implements Screen {
         drawPolygon(menuTrapez.getPoints(), colors[0]);
         drawCenteredText(options[optionFlag], 46, viewport.getWorldHeight()-560, colors[3]);
         drawCenteredText("press space to select", 38, 100, colors[0]);
-        Polygon pointer = new Polygon(new float[3], new float[3], 30);
-        drawEquilateralPolygon(pointer, 3, pointer.getR(), center.x-335, center.y-140, colors[0], 180);
-        pointer = new Polygon(new float[3], new float[3], 30);
-        drawEquilateralPolygon(pointer, 3, pointer.getR(), center.x+335, center.y-140, colors[0], 0);
     }
 
     @Override

@@ -1,8 +1,5 @@
 package com.mygdx.game.Objects;
 
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.utils.Array;
-
 import java.io.Serializable;
 
 public class Level implements Serializable {
@@ -14,7 +11,7 @@ public class Level implements Serializable {
     private float scrollSpeed;
     private float progress;
     private String songName;
-    public Level(String name, int numberOfSides, float duration, Object[] trapezi, String[] colorSet, float scrollSpeed, String songName){
+    public Level(String name, int numberOfSides, float duration, Object[] trapezi, String[] colorSet, float scrollSpeed, String songName, float progress){
         this.name = name;
         this.numberOfSides = numberOfSides;
         this.duration = duration;
@@ -22,7 +19,7 @@ public class Level implements Serializable {
         this.colorSet = colorSet;
         this.songName = songName;
         this.scrollSpeed = scrollSpeed;
-        this.progress = 0;
+        this.progress = progress;
     }
     public Level(String name, int numberOfSides, float progress, String songName){
         this.name = name;

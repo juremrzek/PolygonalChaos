@@ -32,6 +32,7 @@ public class EditorScreen extends InputAdapter implements Screen {
 
     private MyGdxGame game;
     private FitViewport viewport;
+    private GlyphLayout layout;
     private OrthographicCamera camera;
     private SpriteBatch batch;
     private BitmapFont font;
@@ -58,8 +59,10 @@ public class EditorScreen extends InputAdapter implements Screen {
     private Color[] newColors;
     private Color[] currColorSet;
     private ColorAction [] colorActions;
+    private int colorSetFlag; //for settings
 
     private float levelTimestamp;
+
     private float timestampSpeed;
     private float progressBarWidth;
     private float progressBarHeight;
@@ -72,42 +75,48 @@ public class EditorScreen extends InputAdapter implements Screen {
     private boolean deleting;
     private boolean settings;
     private float sizeOfNewTrapez;
+    private String[] trapezSizes;
+    private String[] songNames;
+    private int trapezSizeFlag;
+    private int songFlag;
     private Vector2 mouse;
     private Vector3 mouseIn3D;
 
     private Point center;
     private Circle progressIndicator;
-    private Music music;
 
-    public EditorScreen(MyGdxGame game, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
+    public EditorScreen(MyGdxGame game, String levelName, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
         this.game = game;
         this.batch = batch;
         this.font = font;
         this.sr = sr;
+        this.levelName = levelName;
     }
 
     @Override
     public void show() {
         angle = 0;
-        numberOfSides = 4;
+        numberOfSides = 6;
         movingBar = false;
         movingTrapez = false;
-
         sizeOfNewTrapez = 100;
-        levelName = "Final level";
-        songName = "final music";
-        currColorSet = ColorSets.CYAN;
+        trapezSizes = new String[]{"tiny","small","medium","large","xl"};
+        trapezSizeFlag = 0;
+        songNames = new String[]{"Hexagon", "Hexagoner", "Hexagonest"};
+        songFlag = 0;
+        songName = songNames[songFlag];
+        layout = new GlyphLayout(font, ""); //so we can center text displayed on screen
 
         Gdx.input.setInputProcessor(this);
         scrollSpeed = 200;
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
-        icons = new Icon[]{new Icon(60, viewport.getWorldHeight()-60, 35, "icons/drag.png", Color.BLACK),
-                new Icon(160, viewport.getWorldHeight()-60, 35, "icons/draw.png", Color.BLACK),
-                new Icon(260, viewport.getWorldHeight()-60, 35, "icons/delete.png", Color.BLACK),
-                new Icon(viewport.getWorldWidth()-80, 60, 35, "icons/settings.png", Color.BLACK)};
+        icons = new Icon[]{new Icon(60, viewport.getWorldHeight()-60, 35, "img/drag.png", Color.BLACK),
+                new Icon(160, viewport.getWorldHeight()-60, 35, "img/draw.png", Color.BLACK),
+                new Icon(260, viewport.getWorldHeight()-60, 35, "img/delete.png", Color.BLACK),
+                new Icon(viewport.getWorldWidth()-80, 60, 35, "img/settings.png", Color.BLACK)};
 
-        music = Gdx.audio.newMusic(Gdx.files.internal("music/shaman_gravity.mp3"));
+        //music = Gdx.audio.newMusic(Gdx.files.internal("music/shaman_gravity.mp3"));
         //music.setVolume(0.1f);
         //music.play();
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
@@ -137,6 +146,8 @@ public class EditorScreen extends InputAdapter implements Screen {
             middleHexagon[i].setCenter(center.x, center.y);
         }
         trapezi = new Array<>();
+        FileHandle fileHandle = Gdx.files.local("levels/"+levelName+".lvl");
+        importLevel(fileHandle);
 
         //Set the colors for the game - these can be changed later
         colors = new Color[currColorSet.length];
@@ -147,15 +158,19 @@ public class EditorScreen extends InputAdapter implements Screen {
         for(int i=0; i<newColors.length; i++){
             newColors[i] = new Color(currColorSet[i]);
         }
-
         colorActions = new ColorAction[currColorSet.length];
         for(int i=0; i<colorActions.length; i++){
             colorActions[i] = new ColorAction();
             colorActions[i].setColor(colors[i]);
-            colorActions[i].setDuration(1);
+            colorActions[i].setDuration(0.2f);
             colorActions[i].setEndColor(newColors[i]);
         }
-        font.setColor(colors[0]);
+        changeColor();
+        for(int i=0; i<ColorSets.colorSets.length; i++){
+            if(ColorSets.getName(ColorSets.colorSets[i]).equals(ColorSets.getName(currColorSet))){
+                colorSetFlag = i;
+            }
+        }
     }
 
     @Override
@@ -172,6 +187,7 @@ public class EditorScreen extends InputAdapter implements Screen {
         mouse.y = mouseIn3D.y;
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        font.setColor(colorActions[0].getColor());
         drawBackground();
         for(Trapez t:trapezi) {
             initTrapez(t, t.getDistance(), t.getSize(), angle + (float) 360 / numberOfSides * t.getPosition());
@@ -193,6 +209,111 @@ public class EditorScreen extends InputAdapter implements Screen {
                 icon.setColor(Color.BLACK);
         drawInfo();
         drawProgressBar(progressBarWidth, progressBarHeight, Color.BLACK);
+        if(settings){
+            sr.begin(ShapeRenderer.ShapeType.Filled);
+            sr.setColor(Color.BLACK);
+            sr.rect(90, 90, viewport.getWorldWidth()-180, viewport.getWorldHeight()-180);
+            sr.setColor(colorActions[2].getColor());
+            sr.rect(100, 100, viewport.getWorldWidth()-200, viewport.getWorldHeight()-200);
+            sr.end();
+
+            sr.begin(ShapeRenderer.ShapeType.Filled);
+            sr.setColor(colorActions[0].getColor());
+            sr.rect(center.x-223, viewport.getWorldHeight()-250, 450, 80);
+            sr.rect(center.x-223, viewport.getWorldHeight()-420, 450, 80);
+            sr.rect(center.x-223, viewport.getWorldHeight()-600, 450, 80);
+            sr.rect(center.x-223, viewport.getWorldHeight()-770, 450, 80);
+            sr.end();
+            drawCenteredText("color:", 28, viewport.getWorldHeight()-120, colorActions[0].getColor());
+            drawCenteredText(ColorSets.getName(ColorSets.colorSets[colorSetFlag]), 32, viewport.getWorldHeight()-195, Color.BLACK);
+            Polygon pointer = new Polygon(new float[3], new float[3], 30);
+            drawEquilateralPolygon(pointer, 3, pointer.getR(), center.x-290, viewport.getWorldHeight()-215, colorActions[0].getColor(), 180);
+            Polygon pointer2 = new Polygon(new float[3], new float[3], 30);
+            drawEquilateralPolygon(pointer2, 3, pointer2.getR(), center.x+290, viewport.getWorldHeight()-215, colorActions[0].getColor(), 0);
+            if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                if(Intersector.isPointInPolygon(pointer.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
+                    colorSetFlag--;
+                }
+                if(Intersector.isPointInPolygon(pointer2.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
+                    colorSetFlag++;
+                }
+                colorSetFlag %= ColorSets.colorSets.length;
+                if(colorSetFlag < 0) {
+                    colorSetFlag = ColorSets.colorSets.length - 1;
+                }
+                currColorSet = ColorSets.colorSets[colorSetFlag];
+                changeColor();
+            }
+            drawCenteredText("size of new obstacle:", 28, viewport.getWorldHeight()-290, colorActions[0].getColor());
+            drawCenteredText(trapezSizes[trapezSizeFlag]+"", 32, viewport.getWorldHeight()-365, Color.BLACK);
+            pointer = new Polygon(new float[3], new float[3], 30);
+            drawEquilateralPolygon(pointer, 3, pointer.getR(), center.x-290, viewport.getWorldHeight()-385, colorActions[0].getColor(), 180);
+            pointer2 = new Polygon(new float[3], new float[3], 30);
+            drawEquilateralPolygon(pointer2, 3, pointer2.getR(), center.x+290, viewport.getWorldHeight()-385, colorActions[0].getColor(), 0);
+            if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                if(Intersector.isPointInPolygon(pointer.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
+                    trapezSizeFlag--;
+                    if(trapezSizeFlag < 0)
+                        trapezSizeFlag = trapezSizes.length-1;
+                }
+                if(Intersector.isPointInPolygon(pointer2.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
+                    trapezSizeFlag++;
+                    trapezSizeFlag%=trapezSizes.length;
+                }
+                switch(trapezSizeFlag){
+                    case 0: sizeOfNewTrapez = 20;
+                    break;
+                    case 1: sizeOfNewTrapez = 50;
+                    break;
+                    case 2: sizeOfNewTrapez = 100;
+                    break;
+                    case 3: sizeOfNewTrapez = 200;
+                    break;
+                    case 4: sizeOfNewTrapez = 500;
+                }
+            }
+
+            drawCenteredText("polygon sides:", 28, viewport.getWorldHeight()-470, colorActions[0].getColor());
+            drawCenteredText(numberOfSides+"", 32, viewport.getWorldHeight()-545, Color.BLACK);
+            pointer = new Polygon(new float[3], new float[3], 30);
+            drawEquilateralPolygon(pointer, 3, pointer.getR(), center.x-290, viewport.getWorldHeight()-565, colorActions[0].getColor(), 180);
+            pointer2 = new Polygon(new float[3], new float[3], 30);
+            drawEquilateralPolygon(pointer2, 3, pointer2.getR(), center.x+290, viewport.getWorldHeight()-565, colorActions[0].getColor(), 0);
+            if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                if(Intersector.isPointInPolygon(pointer.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
+                    setNumberOfSides(numberOfSides-1);
+                }
+                if(Intersector.isPointInPolygon(pointer2.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
+                    setNumberOfSides(numberOfSides+1);
+                }
+                if(numberOfSides > 10) {
+                    setNumberOfSides(10);
+                }
+                if(numberOfSides < 3) {
+                    setNumberOfSides(3);
+                }
+            }
+
+            drawCenteredText("music:", 28, viewport.getWorldHeight()-640, colorActions[0].getColor());
+            drawCenteredText(songName, 32, viewport.getWorldHeight()-715, Color.BLACK);
+            pointer = new Polygon(new float[3], new float[3], 30);
+            drawEquilateralPolygon(pointer, 3, pointer.getR(), center.x-290, viewport.getWorldHeight()-735, colorActions[0].getColor(), 180);
+            pointer2 = new Polygon(new float[3], new float[3], 30);
+            drawEquilateralPolygon(pointer2, 3, pointer2.getR(), center.x+290, viewport.getWorldHeight()-735, colorActions[0].getColor(), 0);
+            if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+                if(Intersector.isPointInPolygon(pointer.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
+                    songFlag--;
+                    if(songFlag < 0)
+                        songFlag = songNames.length-1;
+                }
+                if(Intersector.isPointInPolygon(pointer2.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
+                    songFlag++;
+                    songFlag%=songNames.length;
+                }
+                songName = songNames[songFlag];
+            }
+
+            }
         update(Gdx.graphics.getDeltaTime());
     }
     private void update(float delta){
@@ -201,20 +322,22 @@ public class EditorScreen extends InputAdapter implements Screen {
             tlast = new Trapez(0, 1000, 0);
         else
             tlast = trapezi.get(trapezi.size - 1);
-        if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
-            for(Trapez t:trapezi){
-                if(t.getDistance() < 1200 && t.getDistance() > -500){
-                    t.setDistance(t.getStartDistance());
-                }
+        if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) || Gdx.input.isKeyJustPressed(Input.Keys.Q)){
+            if(settings){
+                settings = false;
+                icons[3].setSelected(false);
             }
-            exportLevel();
-            dispose();
-            game.setScreen(new MenuScreen(game, batch, font, sr));
+            else {
+                for (Trapez t : trapezi) {
+                    if (t.getDistance() < 1200 && t.getDistance() > -500) {
+                        t.setDistance(t.getStartDistance());
+                    }
+                }
+                exportLevel();
+                dispose();
+                game.setScreen(new MenuScreen(game, batch, font, sr));
+            }
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D))
-            progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth);
-        if(Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A))
-           progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth);
 
         if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
             if(!movingBar && progressIndicator.intersects(mouse)){
@@ -279,7 +402,8 @@ public class EditorScreen extends InputAdapter implements Screen {
         if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
             if(dragging && !movingBar){
                 for(Trapez t:trapezi){
-                    if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, mouse.x, mouse.y)){
+                    //if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, mouse.x, mouse.y)){
+                    if(t.isSelected()){
                         if(!movingTrapez){
                             distanceFromTrapezToMouse = center.distanceFrom(mouse) - t.getDistance();
                             movingTrapez = true;
@@ -311,15 +435,6 @@ public class EditorScreen extends InputAdapter implements Screen {
         if(movingBar){
             progressIndicator.setX(mouse.x-distanceFromProgressBarToMouse);
         }
-        if(settings){
-            sr.setColor(Color.BLACK);
-            sr.begin(ShapeRenderer.ShapeType.Filled);
-            sr.rect(90, 90, viewport.getWorldWidth()-180, viewport.getWorldHeight()-180);
-            sr.setColor(currColorSet[0]);
-            sr.rect(100, 100, viewport.getWorldWidth()-200, viewport.getWorldHeight()-200);
-            sr.end();
-            drawText(" ", 64, 200, 200);
-        }
         for(Trapez t:trapezi) {
             if(t.getStartDistance() > tlast.getStartDistance()) {
                 tlast = t;
@@ -337,15 +452,6 @@ public class EditorScreen extends InputAdapter implements Screen {
                 Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(game.primaryMonitor));
                 game.fullscreen = true;
             }
-        }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            setNumberOfSides(numberOfSides-1);
-            currColorSet = ColorSets.CYAN;
-            changeColor();
-        }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.P)) {
-            FileHandle fileHandle = Gdx.files.local("levels/"+levelName+".lvl");
-                importLevel(fileHandle);
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.FORWARD_DEL)){
             for(int i=0; i<trapezi.size; i++){
@@ -451,6 +557,15 @@ public class EditorScreen extends InputAdapter implements Screen {
         font.draw(batch, text, x, y);
         batch.end();
     }
+    public void drawCenteredText(String s, float size, float y, Color color){
+        batch.begin();
+        batch.setProjectionMatrix(camera.combined);
+        font.setColor(color);
+        font.getData().setScale(size/64);
+        layout.setText(font, s);
+        font.draw(batch, s, center.x-layout.width/2, y);
+        batch.end();
+    }
     public void drawProgressBar(float width, float height, Color color){
         sr.setColor(color);
         sr.begin(ShapeRenderer.ShapeType.Filled);
@@ -543,7 +658,7 @@ public class EditorScreen extends InputAdapter implements Screen {
     }
     public void exportLevel() {
         try {
-            Level level = new Level(levelName, numberOfSides, getLevelLength(), trapezi.toArray(), ColorSets.toString(currColorSet), scrollSpeed, songName);
+            Level level = new Level(levelName, numberOfSides, getLevelLength(), trapezi.toArray(), ColorSets.toString(currColorSet), scrollSpeed, songName, 0);
             FileHandle fileHandle= Gdx.files.local("levels/"+levelName+".lvl");
             FileOutputStream fos = new FileOutputStream(fileHandle.file());
             ObjectOutputStream ous = new ObjectOutputStream(fos);
@@ -567,11 +682,18 @@ public class EditorScreen extends InputAdapter implements Screen {
             for (Object o : currTrapezi) {
                 trapezi.add((Trapez) o);
             }
+            setNumberOfSides(level.getNumberOfSides());
+            String tempColor = level.getColorSet()[0];
+            for(Color[] tempColorSet:ColorSets.colorSets){
+                if(tempColorSet[0].toString().equals(tempColor)){
+                    currColorSet = tempColorSet;
+                    break;
+                }
+            }
             System.out.println("Level successfully imported");
             tlast = trapezi.get(trapezi.size-1);
             ois.close();
 
-        }catch(EOFException ignore) { //ta exception nam samo pove, da je konec datoteke
         }catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -610,6 +732,11 @@ public class EditorScreen extends InputAdapter implements Screen {
             middleHexagon[i] = new Polygon(new float[numberOfSides], new float[numberOfSides], 70);
             middleHexagon[i].setCenter(center.x, center.y);
         }
+        for(Trapez t:trapezi){
+            if(t.getPosition() >= numberOfSides){
+                t.setPosition(numberOfSides-1);
+            }
+        }
     }
     private void drawPolygon(float [] points, Color color){
         pixmap.setColor(color);
@@ -626,10 +753,12 @@ public class EditorScreen extends InputAdapter implements Screen {
     }
     @Override
     public boolean scrolled(int amount){
-        if(amount == 1)
-            progressIndicator.setX(progressIndicator.getX()+timestampSpeed*dt*progressBarWidth*15);
-        if(amount == -1)
-            progressIndicator.setX(progressIndicator.getX()-timestampSpeed*dt*progressBarWidth*15);
+        if(!settings) {
+            if (amount == 1)
+                progressIndicator.setX(progressIndicator.getX() + timestampSpeed * dt * progressBarWidth * 15);
+            if (amount == -1)
+                progressIndicator.setX(progressIndicator.getX() - timestampSpeed * dt * progressBarWidth * 15);
+        }
         return false;
     }
     @Override
@@ -641,6 +770,6 @@ public class EditorScreen extends InputAdapter implements Screen {
         pixmap.dispose();
         polyBatch.dispose();
         textureSolid.dispose();
-        music.dispose();
+        //music.dispose();
     }
 }

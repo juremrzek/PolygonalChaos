@@ -1,11 +1,12 @@
 package com.mygdx.game.Objects;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.utils.Array;
 
 import java.io.Serializable;
 
 public class ColorSets implements Serializable {
-    public static final Color [] WHITE_GRAY = new Color[5];
+    public static final Color [] GRAY = new Color[5];
     public static final Color [] YELLOW_BLACK = new Color[5];
     public static final Color [] RED = new Color[5];
     public static final Color [] BROWN = new Color[5];
@@ -15,12 +16,13 @@ public class ColorSets implements Serializable {
     public static final Color [] PINK = new Color[5];
     public static final Color [] YELLOW = new Color[5];
     public static final Color [] BLACK = new Color[5];
+    public static Color[][] colorSets;
     static {
-        WHITE_GRAY[0] = new Color(0xFFFFFFFF); //middle hexagon outline
-        WHITE_GRAY[1] = new Color(0x747474FF); //middle hexagon fill
-        WHITE_GRAY[2] = new Color(0xadabacFF); //lighter background part
-        WHITE_GRAY[3] = new Color(0x747474FF); //darker background part
-        WHITE_GRAY[4] = new Color(0x919090FF); //third background color if the number of sides is odd (middle color)
+        GRAY[0] = new Color(0xFFFFFFFF); //middle hexagon outline
+        GRAY[1] = new Color(0x747474FF); //middle hexagon fill
+        GRAY[2] = new Color(0xadabacFF); //lighter background part
+        GRAY[3] = new Color(0x747474FF); //darker background part
+        GRAY[4] = new Color(0x919090FF); //third background color if the number of sides is odd (middle color)
 
         YELLOW_BLACK[0] = new Color(0x9ea52aFF);
         YELLOW_BLACK[1] = new Color(0x010001FF);
@@ -75,6 +77,17 @@ public class ColorSets implements Serializable {
         BLACK[2] = new Color(Color.BLACK);
         BLACK[3] = new Color(Color.BLACK);
         BLACK[4] = new Color(Color.BLACK);
+
+        int numberOfColorSets = 8;
+        colorSets = new Color[numberOfColorSets][];
+        colorSets[0] = ColorSets.BROWN;
+        colorSets[1] = ColorSets.YELLOW_BLACK;
+        colorSets[2] = ColorSets.GREEN;
+        colorSets[3] = ColorSets.PURPLE;
+        colorSets[4] = ColorSets.CYAN;
+        colorSets[5] = ColorSets.GRAY;
+        colorSets[6] = ColorSets.YELLOW;
+        colorSets[7] = ColorSets.PINK;
     }
     public static String[] toString(Color[] colors){
         String[] s = new String[colors.length];
@@ -89,5 +102,28 @@ public class ColorSets implements Serializable {
         int blue = Integer.valueOf(hex.substring(4, 6), 16);
         int alpha = hex.length() != 8 ? 255 : Integer.valueOf(hex.substring(6, 8), 16);
         return new Color(red/255f, green/255f, blue/255f, alpha/255f);
+    }
+    public static String getName(Color[] colorSet){
+        if(colorSet == GRAY)
+            return "gray";
+        if(colorSet == YELLOW_BLACK)
+            return "dark yellow";
+        if(colorSet == RED)
+            return "red";
+        if(colorSet == BROWN)
+            return "brown";
+        if(colorSet == GREEN)
+            return "green";
+        if(colorSet == PURPLE)
+            return "purple";
+        if(colorSet == CYAN)
+            return "cyan";
+        if(colorSet == PINK)
+            return "pink";
+        if(colorSet == YELLOW)
+            return "yellow";
+        if(colorSet == BLACK)
+            return "black";
+        return "";
     }
 }

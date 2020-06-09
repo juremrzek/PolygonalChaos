@@ -9,7 +9,6 @@ import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.scenes.scene2d.actions.ColorAction;
-import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Objects.*;
@@ -37,7 +36,7 @@ public class LevelSelectScreen implements Screen {
     private float angle;
     private Color[] colors;
     private Color[] newColors;
-    private Color[] currColorSet;
+    private String[] currColorSet;
     private ColorAction[] colorActions;
 
     private Level[] levels;
@@ -82,20 +81,20 @@ public class LevelSelectScreen implements Screen {
         PolygonRegion polyReg = new PolygonRegion(new TextureRegion(textureSolid), tempTrapez.getPoints(), ect.computeTriangles(tempTrapez.getPoints()).toArray());
         poly = new PolygonSprite(polyReg);
 
-        currColorSet = ColorSets.YELLOW_BLACK;
+        currColorSet = displayedLevel.getColorSet();
         colors = new Color[currColorSet.length];
         for(int i=0; i<colors.length; i++){
-            colors[i] = new Color(currColorSet[i]);
+            colors[i] = new Color(ColorSets.getColorFromHex(currColorSet[i]));
         }
         newColors = new Color[currColorSet.length];
         for(int i=0; i<newColors.length; i++){
-            newColors[i] = new Color(currColorSet[i]);
+            newColors[i] = new Color(ColorSets.getColorFromHex(currColorSet[i]));
         }
         colorActions = new ColorAction[currColorSet.length];
         for(int i=0; i<colorActions.length; i++){
             colorActions[i] = new ColorAction();
             colorActions[i].setColor(colors[i]);
-            colorActions[i].setDuration(1);
+            colorActions[i].setDuration(0.2f);
             colorActions[i].setEndColor(newColors[i]);
         }
         middleHexagon = new Polygon[2];
@@ -108,27 +107,33 @@ public class LevelSelectScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        for (ColorAction ca : colorActions) {
+            ca.act(delta);
+        }
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         drawBackground();
-        sr.setColor(Color.BLACK);
+        sr.setColor(colorActions[1].getColor());
         sr.setProjectionMatrix(camera.combined);
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.rect(0, viewport.getWorldHeight()-720, viewport.getWorldWidth(), viewport.getWorldHeight()-310);
-        sr.setColor(colors[0]);
+        sr.setColor(colorActions[0].getColor());
         sr.triangle(120, center.y-410, 120, center.y-290, 60, center.y-350);
         sr.triangle(viewport.getWorldWidth()-120, center.y-410, viewport.getWorldWidth()-120, center.y-290, viewport.getWorldWidth()-60, center.y-350);
         sr.end();
         if(levels.length != 0) {
             drawEquilateralPolygon(middleHexagon[1], numberOfSides, middleHexagon[0].getR() + 10, center.x, center.y - 120, colorActions[0].getColor(), angle);
             drawEquilateralPolygon(middleHexagon[0], numberOfSides, middleHexagon[0].getR(), center.x, center.y - 120, colorActions[1].getColor(), angle);
-            drawCenteredText("Levels", 52, viewport.getWorldHeight() - 30, colors[0]);
-            drawCenteredText(displayedLevel.getName(), 64, viewport.getWorldHeight() - 180, colors[0]);
-            drawCenteredText("progress: " + displayedLevel.getProgress(), 32, viewport.getWorldHeight() - 320, colors[0]);
-            drawCenteredText("song: " + displayedLevel.getSongName(), 32, viewport.getWorldHeight() - 380, colors[0]);
+            drawCenteredText("play", 52, viewport.getWorldHeight() - 30, colorActions[0].getColor());
+            drawCenteredText(displayedLevel.getName(), 64, viewport.getWorldHeight() - 180, colorActions[0].getColor());
+            if(displayedLevel.getProgress() >= 100)
+                drawCenteredText("progress: completed", 32, viewport.getWorldHeight() - 320, colorActions[0].getColor());
+            else
+                drawCenteredText("progress: " + (int)displayedLevel.getProgress()+"%", 32, viewport.getWorldHeight() - 320, colorActions[0].getColor());
+            drawCenteredText("song: " + displayedLevel.getSongName(), 32, viewport.getWorldHeight() - 380, colorActions[0].getColor());
         }
         else
-            drawCenteredText("No levels yet", 64, viewport.getWorldHeight()/2+200, colors[0]);
+            drawCenteredText("No levels yet", 64, viewport.getWorldHeight()/2+200, colorActions[0].getColor());
         update(delta);
     }
 
@@ -136,13 +141,15 @@ public class LevelSelectScreen implements Screen {
         if(levels.length != 0) {
             displayedLevel = levels[displayedLevelIndex];
             numberOfSides = displayedLevel.getNumberOfSides();
+            currColorSet = displayedLevel.getColorSet();
+            changeColor();
         }
         for(int i=0; i<middleHexagon.length; i++) {
             middleHexagon[i] = new Polygon(new float[numberOfSides], new float[numberOfSides], 70);
             middleHexagon[i].setCenter(center.x, center.y);
         }
 
-        if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
+        if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) || Gdx.input.isKeyJustPressed(Input.Keys.Q)){
             dispose();
             game.setScreen(new MenuScreen(game, batch, font, sr));
         }
@@ -162,6 +169,16 @@ public class LevelSelectScreen implements Screen {
         }
         angle+=0.1f;
         angle%=360;
+    }
+    private void changeColor(){
+        newColors = new Color[currColorSet.length];
+        for(int i=0; i<colors.length; i++){
+            newColors[i] = new Color(ColorSets.getColorFromHex(currColorSet[i]));
+        }
+        for(int i=0; i<colorActions.length; i++){
+            colorActions[i].restart();
+            colorActions[i].setEndColor(newColors[i]);
+        }
     }
 
     @Override
@@ -214,15 +231,25 @@ public class LevelSelectScreen implements Screen {
             Polygon bgTriangle = new Polygon(new float[3], new float[3]);
             for (int j = 1; j < 3; j++) {
                 bgTriangle.xPoints[0] = viewport.getWorldWidth() / 2f;
-                bgTriangle.yPoints[0] = -100;
+                bgTriangle.yPoints[0] = viewport.getWorldHeight() / 2f;
                 bgTriangle.xPoints[j] = bgTriangle.xPoints[0] + (float) Math.cos(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999; //edges of background triangles need to be very far away from the center to cover the whole screen
                 bgTriangle.yPoints[j] = bgTriangle.yPoints[0] + (float)(Math.sin(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999);
             }
             Color tempColor;
-            if (i % 2 == 0)
-                tempColor = colorActions[2].getColor();
-            else
-                tempColor = colorActions[3].getColor();
+            if(numberOfSides%2 == 0) {
+                if (i % 2 == 0)
+                    tempColor = colorActions[2].getColor();
+                else
+                    tempColor = colorActions[3].getColor();
+            }
+            else{
+                if (i % 5 == 0 && i % 3 == 0)
+                    tempColor = colorActions[4].getColor();
+                else if(i % 2 == 0)
+                    tempColor = colorActions[3].getColor();
+                else
+                    tempColor = colorActions[2].getColor();
+            }
             drawPolygon(bgTriangle.getPoints(), tempColor);
         }
     }
