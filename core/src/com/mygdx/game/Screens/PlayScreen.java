@@ -139,7 +139,7 @@ public class PlayScreen implements Screen {
         timestampSpeed = scrollSpeed/tlast.getStartDistance();
 
         music = Gdx.audio.newMusic(Gdx.files.internal("music/"+level.getSongName()+".mp3"));
-        music.setVolume(0.1f);
+        music.setVolume(0.4f);
         music.play();
 
         deathSound = Gdx.audio.newSound(Gdx.files.internal("sounds/die.wav"));
@@ -379,7 +379,7 @@ public class PlayScreen implements Screen {
             winSound.play(0.8f);
             canPlayWinSound = false;
         }
-        drawScreenBox(false,300, 50, 20);
+        drawScreenBox(false,630, 50, 20);
         String secondsString;
         if(seconds >= 10)
             secondsString = ""+seconds;
@@ -399,7 +399,7 @@ public class PlayScreen implements Screen {
             drawText("Time:", 30, viewport.getWorldWidth()-450, viewport.getWorldHeight()-8);
         }
         drawText("."+milliseconds, 20, viewport.getWorldWidth()-65, viewport.getWorldHeight()-43);
-        drawText("Level 1", 32, 10, viewport.getWorldHeight()-8);
+        drawText("Progress: "+Math.floor(levelTimestamp*1000)/10+"%", 32, 10, viewport.getWorldHeight()-8);
     }
     public float getLevelLength(){
         if(trapezi.isEmpty())
