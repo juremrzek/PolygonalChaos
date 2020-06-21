@@ -66,7 +66,6 @@ public class LevelSelectScreen implements Screen {
             numberOfSides = 12;
         }
 
-
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
@@ -198,7 +197,6 @@ public class LevelSelectScreen implements Screen {
             colorActions[i].setEndColor(newColors[i]);
         }
     }
-
 
     @Override
     public void resize(int width, int height) {

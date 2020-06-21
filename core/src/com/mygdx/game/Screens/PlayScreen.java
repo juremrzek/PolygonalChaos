@@ -99,6 +99,7 @@ public class PlayScreen implements Screen {
             break;
             default: rotateSpeed = 70;
         }
+        //rotateSpeed = 50;
         scrollSpeed = 200;
         dead = false;
         canPlayWinSound = true;
@@ -138,7 +139,7 @@ public class PlayScreen implements Screen {
         timestampSpeed = scrollSpeed/tlast.getStartDistance();
 
         music = Gdx.audio.newMusic(Gdx.files.internal("music/"+level.getSongName()+".mp3"));
-        music.setVolume(0.4f);
+        music.setVolume(0.1f);
         music.play();
 
         deathSound = Gdx.audio.newSound(Gdx.files.internal("sounds/die.wav"));
@@ -155,7 +156,7 @@ public class PlayScreen implements Screen {
         pointer.setCenter(center.x, center.y);
         pointerRotationR = middleHexagon[0].getR()+25;
         pointerAngle = 0;
-        pointerRotationSpeed = 10;
+        pointerRotationSpeed = 5 * rotateSpeed/50f;
         for(int i=0; i<pointer.xPoints.length; i++) {
             pointer.xPoints[i] = (float) (pointer.getCenterX() + Math.cos(Math.toRadians(pointerAngle + (360f / pointer.xPoints.length) * i)) * pointer.getR());
             pointer.yPoints[i] = (float) (pointer.getCenterY() + Math.sin(Math.toRadians(pointerAngle + (360f / pointer.xPoints.length) * i)) * pointer.getR());
@@ -227,17 +228,17 @@ public class PlayScreen implements Screen {
                     deathSound.play(0.4f);
                 }
                 //now check if the pointer is colliding with right or left size of trapez by checking which edge of the pointer is trapez colliding with
-                if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, pointer.getXPoints()[2], pointer.getYPoints()[2])){
-                    collidedRight = true;
-                    pointerVector = new Vector(center, new Point(pointer.getXPoints()[2], pointer.getYPoints()[2]));
-                    trapezVector = new Vector(new Point(t.getXPoints()[1], t.getYPoints()[1]), new Point(t.getXPoints()[2], t.getYPoints()[2]));
-                    pointerAngle += Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector)));
-                }
                 if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, pointer.getXPoints()[1], pointer.getYPoints()[1])){
                     collidedLeft = true;
                     pointerVector = new Vector(center, new Point(pointer.getXPoints()[1], pointer.getYPoints()[1]));
                     trapezVector = new Vector(new Point(t.getXPoints()[0], t.getYPoints()[0]), new Point(t.getXPoints()[3], t.getYPoints()[3]));
                     pointerAngle -= Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector)));
+                }
+                if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, pointer.getXPoints()[2], pointer.getYPoints()[2])){
+                    collidedRight = true;
+                    pointerVector = new Vector(center, new Point(pointer.getXPoints()[2], pointer.getYPoints()[2]));
+                    trapezVector = new Vector(new Point(t.getXPoints()[1], t.getYPoints()[1]), new Point(t.getXPoints()[2], t.getYPoints()[2]));
+                    pointerAngle += Math.floor(Math.toDegrees(pointerVector.getAngle(trapezVector)));
                 }
             }
         }

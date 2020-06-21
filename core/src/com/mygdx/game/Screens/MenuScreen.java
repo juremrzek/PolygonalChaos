@@ -200,6 +200,11 @@ public class MenuScreen implements Screen {
                     }
                 }
                 break;
+                case 3:{
+                    dispose();
+                    game.setScreen(new CreditsScreen(game, angle, newColors, batch, font, sr));
+                }
+                break;
                 case 4: game.dispose();
                 break;
             }

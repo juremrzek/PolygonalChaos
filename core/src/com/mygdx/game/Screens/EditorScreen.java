@@ -100,9 +100,6 @@ public class EditorScreen extends InputAdapter implements Screen {
         sizeOfNewTrapez = 100;
         trapezSizes = new String[]{"tiny","small","medium","large","xl"};
 
-        int[] a = {1,2,3};
-        int[] b = new int[]{1,2,3};
-
         trapezSizeFlag = 2;
         songFlag = 0;
         songNames = new String[]{"Hexagon", "Hexagoner", "Hexagonest"};
