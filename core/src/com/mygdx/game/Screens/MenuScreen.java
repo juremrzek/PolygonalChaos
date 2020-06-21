@@ -3,6 +3,7 @@ package com.mygdx.game.Screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -47,6 +48,8 @@ public class MenuScreen implements Screen {
 
     private Vector2 mouse;
     private Vector3 mouseIn3D;
+    private Sound moveSound;
+    private Sound chooseSound;
 
     public MenuScreen(MyGdxGame game, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
         this.game = game;
@@ -63,8 +66,8 @@ public class MenuScreen implements Screen {
         optionFlag = 0;
         options = new String[5];
         options[0] = "play";
-        options[1] = "create";
-        options[2] = "options";
+        options[1] = "edit";
+        options[2] = "fullscreen";
         options[3] = "credits";
         options[4] = "exit";
 
@@ -76,6 +79,10 @@ public class MenuScreen implements Screen {
         viewport.unproject(mouseIn3D);
         mouse = new Vector2(mouseIn3D.x, mouseIn3D.y);
         initTrapez(menuTrapez, menuTrapez.getDistance(), menuTrapez.getSize(), 60);
+
+        moveSound = Gdx.audio.newSound(Gdx.files.internal("sounds/menumove.wav"));
+        chooseSound = Gdx.audio.newSound(Gdx.files.internal("sounds/menuchoose.wav"));
+        chooseSound.play(0.5f);
 
         //objects to draw polygons
         pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
@@ -141,14 +148,16 @@ public class MenuScreen implements Screen {
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) || Gdx.input.isKeyJustPressed(Input.Keys.Q)){
             game.dispose();
         }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.LEFT)){
+        if(Gdx.input.isKeyJustPressed(Input.Keys.D) || Gdx.input.isKeyJustPressed(Input.Keys.LEFT)){
             optionFlag--;
             if(optionFlag < 0)
                 optionFlag = options.length-1;
+            moveSound.play(0.5f);
         }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)){
+        if(Gdx.input.isKeyJustPressed(Input.Keys.A) || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)){
             optionFlag++;
             optionFlag %= options.length;
+            moveSound.play(0.5f);
         }
         Polygon pointer = new Polygon(new float[3], new float[3], 30);
         drawEquilateralPolygon(pointer, 3, pointer.getR(), center.x-335, center.y-140, colors[0], 180);
@@ -157,15 +166,18 @@ public class MenuScreen implements Screen {
         if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
             if(Intersector.isPointInPolygon(pointer.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
                 optionFlag--;
+                moveSound.play(0.5f);
             }
             if(Intersector.isPointInPolygon(pointer2.getPoints(), 0, pointer.getPoints().length, mouse.x, mouse.y)) {
                 optionFlag++;
+                moveSound.play(0.5f);
             }
             if(optionFlag < 0)
                 optionFlag = options.length-1;
             optionFlag %= options.length;
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)){
+            chooseSound.play(0.5f);
             switch(optionFlag){
                 case 0: {
                     dispose();
@@ -177,18 +189,19 @@ public class MenuScreen implements Screen {
                     game.setScreen(new EditSelectScreen(game, angle, batch, font, sr));
                 }
                 break;
+                case 2:{
+                    if(game.fullscreen) {
+                        Gdx.graphics.setWindowedMode((int)viewport.getWorldWidth(), (int)viewport.getWorldHeight());
+                        game.fullscreen = false;
+                    }
+                    else {
+                        Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(game.primaryMonitor));
+                        game.fullscreen = true;
+                    }
+                }
+                break;
                 case 4: game.dispose();
                 break;
-            }
-        }
-        if(Gdx.input.isKeyPressed(Input.Keys.F)) {
-            if(game.fullscreen) {
-                Gdx.graphics.setWindowedMode((int)viewport.getWorldWidth(), (int)viewport.getWorldHeight());
-                game.fullscreen = false;
-            }
-            else {
-                Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(game.primaryMonitor));
-                game.fullscreen = true;
             }
         }
         if(getPassedTime() > 2000000000f){ //one seconds - 1000000000 nanoseconds (we change colors every 2s)
@@ -228,10 +241,20 @@ public class MenuScreen implements Screen {
                 bgTriangle.yPoints[j] = bgTriangle.yPoints[0] + (float)(Math.sin(Math.toRadians(angle + (360f / numberOfSides) * (i + j))) * 9999);
             }
             Color tempColor;
-            if (i % 2 == 0)
-                tempColor = colors[2];
-            else
-                tempColor = colors[3];
+            if(numberOfSides%2 == 0) {
+                if (i % 2 == 0)
+                    tempColor = colorActions[2].getColor();
+                else
+                    tempColor = colorActions[3].getColor();
+            }
+            else{
+                if (i % 5 == 0 && i % 3 == 0)
+                    tempColor = colorActions[4].getColor();
+                else if(i % 2 == 0)
+                    tempColor = colorActions[3].getColor();
+                else
+                    tempColor = colorActions[2].getColor();
+            }
             drawPolygon(bgTriangle.getPoints(), tempColor);
         }
     }
@@ -304,14 +327,20 @@ public class MenuScreen implements Screen {
         drawCenteredText("POLYGONAL", 105, viewport.getWorldHeight()-120, colors[0]);
         drawCenteredText("CHAOS", 64, viewport.getWorldHeight()-240, colors[0]);
         drawPolygon(menuTrapez.getPoints(), colors[0]);
-        drawCenteredText(options[optionFlag], 46, viewport.getWorldHeight()-560, colors[3]);
+        if(optionFlag != 2)
+            drawCenteredText(options[optionFlag], 46, viewport.getWorldHeight()-560, colors[3]);
+        else
+            drawCenteredText(options[optionFlag], 38, viewport.getWorldHeight()-560, colors[3]);
         drawCenteredText("press space to select", 38, 100, colors[0]);
     }
 
     @Override
     public void dispose() {
+        moveSound.dispose();
         pixmap.dispose();
         polyBatch.dispose();
         textureSolid.dispose();
     }
 }
+
+

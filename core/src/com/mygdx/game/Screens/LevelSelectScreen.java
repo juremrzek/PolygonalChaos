@@ -3,6 +3,7 @@ package com.mygdx.game.Screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
@@ -43,6 +44,7 @@ public class LevelSelectScreen implements Screen {
     private Level displayedLevel;
     private int displayedLevelIndex;
     private GlyphLayout layout;
+    private Sound moveSound;
 
     public LevelSelectScreen(MyGdxGame game, float angle, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
         this.game = game;
@@ -69,6 +71,7 @@ public class LevelSelectScreen implements Screen {
         viewport = new FitViewport(1280, 900, camera);
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
         sr = new ShapeRenderer();
+        moveSound = Gdx.audio.newSound(Gdx.files.internal("sounds/menumove.wav"));
 
         Trapez tempTrapez = new Trapez(100, 100, 1);
         initTrapez(tempTrapez, tempTrapez.getStartDistance(), tempTrapez.getSize(), angle);
@@ -127,10 +130,23 @@ public class LevelSelectScreen implements Screen {
             drawCenteredText("play", 52, viewport.getWorldHeight() - 30, colorActions[0].getColor());
             drawCenteredText(displayedLevel.getName(), 64, viewport.getWorldHeight() - 180, colorActions[0].getColor());
             if(displayedLevel.getProgress() >= 100)
-                drawCenteredText("progress: completed", 32, viewport.getWorldHeight() - 320, colorActions[0].getColor());
+                drawCenteredText("progress: completed", 32, viewport.getWorldHeight() - 305, colorActions[0].getColor());
             else
-                drawCenteredText("progress: " + (int)displayedLevel.getProgress()+"%", 32, viewport.getWorldHeight() - 320, colorActions[0].getColor());
-            drawCenteredText("song: " + displayedLevel.getSongName(), 32, viewport.getWorldHeight() - 380, colorActions[0].getColor());
+                drawCenteredText("progress: " + (int)displayedLevel.getProgress()+"%", 32, viewport.getWorldHeight() - 305, colorActions[0].getColor());
+            drawCenteredText("song: " + displayedLevel.getSongName(), 32, viewport.getWorldHeight() - 365, colorActions[0].getColor());
+
+            double levelLength = Math.floor(displayedLevel.getDuration() * 10) / 10;
+            String[] time = (levelLength + "").split("\\.");
+            int seconds = Integer.parseInt(time[0]);
+            int tenths = Integer.parseInt(time[1]);
+            String levelLengthString;
+            if (seconds < 10)
+                levelLengthString = "0" + seconds;
+            else
+                levelLengthString = "" + seconds;
+            levelLengthString += "." + tenths;
+
+            drawCenteredText("length: "+ levelLengthString+" seconds", 32, viewport.getWorldHeight() - 425, colorActions[0].getColor());
         }
         else
             drawCenteredText("No levels yet", 64, viewport.getWorldHeight()/2+200, colorActions[0].getColor());
@@ -161,11 +177,13 @@ public class LevelSelectScreen implements Screen {
             displayedLevelIndex--;
             if(displayedLevelIndex<0)
                 displayedLevelIndex = levels.length-1;
+            moveSound.play(0.5f);
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.D) || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) && levels.length != 0) {
             displayedLevelIndex++;
             if(displayedLevelIndex>levels.length-1)
                 displayedLevelIndex = 0;
+            moveSound.play(0.5f);
         }
         angle+=0.1f;
         angle%=360;
@@ -180,6 +198,7 @@ public class LevelSelectScreen implements Screen {
             colorActions[i].setEndColor(newColors[i]);
         }
     }
+
 
     @Override
     public void resize(int width, int height) {
@@ -256,8 +275,9 @@ public class LevelSelectScreen implements Screen {
     private void importLevels(){
         FileHandle fh = Gdx.files.local("levels");
         FileHandle[] files = fh.list();
+        Level[] templevels = new Level[files.length];
         levels = new Level[files.length];
-        if(levels.length == 0){
+        if(templevels.length == 0){
             return;
         }
         for(int i=0; i<files.length; i++){
@@ -266,9 +286,25 @@ public class LevelSelectScreen implements Screen {
                 ObjectInputStream ois = new ObjectInputStream(fin);
                 Level level = (Level) ois.readObject();
                 ois.close();
-                levels[i] = level;
+                templevels[i] = level;
             }catch(Exception e){
                 e.printStackTrace();
+            }
+        }
+        for (Level templevel : templevels) {
+            switch (templevel.getName()) {
+                case "First level":
+                    levels[0] = templevel;
+                    break;
+                case "Another level":
+                    levels[1] = templevel;
+                    break;
+                case "Level3":
+                    levels[2] = templevel;
+                    break;
+                case "Final level":
+                    levels[3] = templevel;
+                    break;
             }
         }
     }
@@ -292,5 +328,9 @@ public class LevelSelectScreen implements Screen {
 
     @Override
     public void dispose() {
+        pixmap.dispose();
+        polyBatch.dispose();
+        textureSolid.dispose();
+        moveSound.dispose();
     }
 }

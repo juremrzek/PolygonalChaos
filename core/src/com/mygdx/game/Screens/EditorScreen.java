@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
@@ -14,13 +13,10 @@ import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.actions.ColorAction;
-import com.badlogic.gdx.scenes.scene2d.actions.RepeatAction;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.Objects.*;
-
-import java.awt.color.*;
 
 import java.io.*;
 
@@ -74,6 +70,7 @@ public class EditorScreen extends InputAdapter implements Screen {
     private boolean dragging;
     private boolean deleting;
     private boolean settings;
+    private boolean firstSettings;
     private float sizeOfNewTrapez;
     private String[] trapezSizes;
     private String[] songNames;
@@ -81,16 +78,17 @@ public class EditorScreen extends InputAdapter implements Screen {
     private int songFlag;
     private Vector2 mouse;
     private Vector3 mouseIn3D;
-
     private Point center;
     private Circle progressIndicator;
+    private boolean saveDisplayed;
 
-    public EditorScreen(MyGdxGame game, String levelName, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
+    public EditorScreen(MyGdxGame game, String levelName, String songName, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
         this.game = game;
         this.batch = batch;
         this.font = font;
         this.sr = sr;
         this.levelName = levelName;
+        this.songName = songName;
     }
 
     @Override
@@ -101,11 +99,20 @@ public class EditorScreen extends InputAdapter implements Screen {
         movingTrapez = false;
         sizeOfNewTrapez = 100;
         trapezSizes = new String[]{"tiny","small","medium","large","xl"};
-        trapezSizeFlag = 0;
-        songNames = new String[]{"Hexagon", "Hexagoner", "Hexagonest"};
+
+        int[] a = {1,2,3};
+        int[] b = new int[]{1,2,3};
+
+        trapezSizeFlag = 2;
         songFlag = 0;
+        songNames = new String[]{"Hexagon", "Hexagoner", "Hexagonest"};
+        for(int i=0; i<songNames.length; i++){
+            if(songNames[i].equals(songName))
+                songFlag = i;
+        }
         songName = songNames[songFlag];
         layout = new GlyphLayout(font, ""); //so we can center text displayed on screen
+        saveDisplayed = false;
 
         Gdx.input.setInputProcessor(this);
         scrollSpeed = 200;
@@ -208,6 +215,8 @@ public class EditorScreen extends InputAdapter implements Screen {
             else
                 icon.setColor(Color.BLACK);
         drawInfo();
+        if(saveDisplayed)
+            drawSaveBox();
         drawProgressBar(progressBarWidth, progressBarHeight, Color.BLACK);
         if(settings){
             sr.begin(ShapeRenderer.ShapeType.Filled);
@@ -327,7 +336,7 @@ public class EditorScreen extends InputAdapter implements Screen {
                 settings = false;
                 icons[3].setSelected(false);
             }
-            else {
+            else if(saveDisplayed) {
                 for (Trapez t : trapezi) {
                     if (t.getDistance() < 1200 && t.getDistance() > -500) {
                         t.setDistance(t.getStartDistance());
@@ -337,6 +346,8 @@ public class EditorScreen extends InputAdapter implements Screen {
                 dispose();
                 game.setScreen(new MenuScreen(game, batch, font, sr));
             }
+            else
+                saveDisplayed = true;
         }
 
         if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
@@ -402,7 +413,6 @@ public class EditorScreen extends InputAdapter implements Screen {
         if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
             if(dragging && !movingBar){
                 for(Trapez t:trapezi){
-                    //if(Intersector.isPointInPolygon(t.getPoints(), 0, t.getPoints().length, mouse.x, mouse.y)){
                     if(t.isSelected()){
                         if(!movingTrapez){
                             distanceFromTrapezToMouse = center.distanceFrom(mouse) - t.getDistance();
@@ -440,17 +450,6 @@ public class EditorScreen extends InputAdapter implements Screen {
                 tlast = t;
                 trapezi.removeValue(t, false);
                 trapezi.add(t);
-            }
-        }
-        //Press F to make fullscreen (to do - put it as an option)
-        if(Gdx.input.isKeyPressed(Input.Keys.F)) {
-            if(game.fullscreen) {
-                Gdx.graphics.setWindowedMode((int)viewport.getWorldWidth(), (int)viewport.getWorldHeight());
-                game.fullscreen = false;
-            }
-            else {
-                Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(game.primaryMonitor));
-                game.fullscreen = true;
             }
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.FORWARD_DEL)){
@@ -623,6 +622,45 @@ public class EditorScreen extends InputAdapter implements Screen {
         batch.draw(icons[2].getTexture(), icons[2].getX() - 22, icons[2].getY() - 22, 45, 45);
         batch.draw(icons[3].getTexture(), icons[3].getX() - 22, icons[3].getY() - 22, 45, 45);
         batch.end();
+    }
+    private void drawSaveBox(){
+        boolean yesHovered = false;
+        boolean noHovered = false;
+        sr.setColor(Color.BLACK);
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        sr.rect(center.x-310,center.y-160, 620, 320);
+        sr.setColor(colorActions[2].getColor());
+        sr.rect(center.x-300,center.y-150, 600, 300);
+        sr.end();
+        drawCenteredText("save and exit?", 32, center.y+120, colorActions[0].getColor());
+        if(mouse.x > center.x-300 && mouse.y < center.y+25 && mouse.x < center.x+300 && mouse.y > center.y-20){
+            drawCenteredText("yes", 32, center.y+20, colorActions[3].getColor());
+            yesHovered = true;
+        }
+        else
+            drawCenteredText("yes", 32, center.y+20, colorActions[0].getColor());
+
+        if(mouse.x > center.x-300 && mouse.y < center.y-55 && mouse.x < center.x+300 && mouse.y > center.y-100){
+            drawCenteredText("not yet", 32, center.y-60, colorActions[3].getColor());
+            noHovered = true;
+        }
+        else
+            drawCenteredText("not yet", 32, center.y-60, colorActions[0].getColor());
+
+        if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+            if(yesHovered){
+                for (Trapez t : trapezi) {
+                    if (t.getDistance() < 1200 && t.getDistance() > -500) {
+                        t.setDistance(t.getStartDistance());
+                    }
+                }
+                exportLevel();
+                dispose();
+                game.setScreen(new MenuScreen(game, batch, font, sr));
+            }
+            else if(noHovered)
+                saveDisplayed = false;
+        }
     }
     private void changeColor(){
         newColors = new Color[currColorSet.length];

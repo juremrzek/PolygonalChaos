@@ -3,6 +3,7 @@ package com.mygdx.game.Screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
@@ -44,6 +45,7 @@ public class EditSelectScreen implements Screen {
     private Level displayedLevel;
     private int displayedLevelIndex;
     private GlyphLayout layout;
+    private Sound moveSound;
 
     private Trapez tlast;
 
@@ -73,6 +75,7 @@ public class EditSelectScreen implements Screen {
         viewport = new FitViewport(1280, 900, camera);
         center = new Point(viewport.getWorldWidth()/2, viewport.getWorldHeight()/2);
         sr = new ShapeRenderer();
+        moveSound = Gdx.audio.newSound(Gdx.files.internal("sounds/menumove.wav"));
 
         Trapez tempTrapez = new Trapez(100, 100, 1);
         initTrapez(tempTrapez, tempTrapez.getStartDistance(), tempTrapez.getSize(), angle);
@@ -168,17 +171,19 @@ public class EditSelectScreen implements Screen {
         }
         if((Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) && levels.length != 0){
             dispose();
-            game.setScreen(new EditorScreen(game, displayedLevel.getName(), batch, font, sr));
+            game.setScreen(new EditorScreen(game, displayedLevel.getName(), displayedLevel.getSongName(), batch, font, sr));
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.A) || Gdx.input.isKeyJustPressed(Input.Keys.LEFT) && levels.length != 0) {
             displayedLevelIndex--;
             if(displayedLevelIndex<0)
                 displayedLevelIndex = levels.length-1;
+            moveSound.play(0.5f);
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.D) || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) && levels.length != 0) {
             displayedLevelIndex++;
             if(displayedLevelIndex>levels.length-1)
                 displayedLevelIndex = 0;
+            moveSound.play(0.5f);
         }
         angle+=0.1f;
         angle%=360;
@@ -274,8 +279,9 @@ public class EditSelectScreen implements Screen {
     private void importLevels(){
         FileHandle fh = Gdx.files.local("levels");
         FileHandle[] files = fh.list();
+        Level[] templevels = new Level[files.length];
         levels = new Level[files.length];
-        if(levels.length == 0){
+        if(templevels.length == 0){
             return;
         }
         for(int i=0; i<files.length; i++){
@@ -284,9 +290,25 @@ public class EditSelectScreen implements Screen {
                 ObjectInputStream ois = new ObjectInputStream(fin);
                 Level level = (Level) ois.readObject();
                 ois.close();
-                levels[i] = level;
+                templevels[i] = level;
             }catch(Exception e){
                 e.printStackTrace();
+            }
+        }
+        for (Level templevel : templevels) {
+            switch (templevel.getName()) {
+                case "First level":
+                    levels[0] = templevel;
+                    break;
+                case "Another level":
+                    levels[1] = templevel;
+                    break;
+                case "Level3":
+                    levels[2] = templevel;
+                    break;
+                case "Final level":
+                    levels[3] = templevel;
+                    break;
             }
         }
     }
@@ -310,5 +332,9 @@ public class EditSelectScreen implements Screen {
 
     @Override
     public void dispose() {
+        pixmap.dispose();
+        polyBatch.dispose();
+        textureSolid.dispose();
+        moveSound.dispose();
     }
 }

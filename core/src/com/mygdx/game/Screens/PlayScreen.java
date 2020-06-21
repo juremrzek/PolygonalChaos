@@ -70,6 +70,8 @@ public class PlayScreen implements Screen {
     private long deathTime;
     private Sound deathSound;
     private Sound playSound;
+    private Sound winSound;
+    private boolean canPlayWinSound;
 
     public PlayScreen(MyGdxGame game, Level level, SpriteBatch batch, BitmapFont font, ShapeRenderer sr){
         this.game = game;
@@ -86,8 +88,20 @@ public class PlayScreen implements Screen {
         seconds = 0;
         milliseconds = 0;
         levelTimestamp = 0;
-        rotateSpeed = 50;
+        switch(level.getName()){
+            case "First level": rotateSpeed = 50;
+            break;
+            case "Another level": rotateSpeed = 75;
+            break;
+            case "Level3": rotateSpeed = 100;
+            break;
+            case "Final level": rotateSpeed = 125;
+            break;
+            default: rotateSpeed = 70;
+        }
+        scrollSpeed = 200;
         dead = false;
+        canPlayWinSound = true;
 
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 900, camera);
@@ -107,7 +121,6 @@ public class PlayScreen implements Screen {
         for (Object o : level.getTrapezi()) {
             trapezi.add((Trapez)o);
         }
-        this.scrollSpeed = level.getScrollSpeed();
 
         tlast = trapezi.get(trapezi.size - 1);
         for(Trapez t:trapezi) {
@@ -125,11 +138,12 @@ public class PlayScreen implements Screen {
         timestampSpeed = scrollSpeed/tlast.getStartDistance();
 
         music = Gdx.audio.newMusic(Gdx.files.internal("music/"+level.getSongName()+".mp3"));
-        music.setVolume(0.5f);
+        music.setVolume(0.4f);
         music.play();
 
         deathSound = Gdx.audio.newSound(Gdx.files.internal("sounds/die.wav"));
         playSound = Gdx.audio.newSound(Gdx.files.internal("sounds/play.wav"));
+        winSound = Gdx.audio.newSound(Gdx.files.internal("sounds/win.wav"));
         playSound.play(0.6f);
 
         middleHexagon = new Polygon[2];
@@ -177,20 +191,9 @@ public class PlayScreen implements Screen {
             levelTimestamp +=timestampSpeed*dt;
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) || Gdx.input.isKeyJustPressed(Input.Keys.Q)){
-            exportLevel();
-            dispose();
-            game.setScreen(new LevelSelectScreen(game, angle, batch, font, sr));
-        }
-        //Press F to make fullscreen (to do - put it as an option)
-        if(Gdx.input.isKeyPressed(Input.Keys.F)) {
-            if(game.fullscreen) {
-                Gdx.graphics.setWindowedMode((int)viewport.getWorldWidth(), (int)viewport.getWorldHeight());
-                game.fullscreen = false;
-            }
-            else {
-                Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(game.primaryMonitor));
-                game.fullscreen = true;
-            }
+            deathTime = System.nanoTime();
+            deathSound.play(0.4f);
+            dead = true;
         }
         for(int i=0; i<trapezi.size; i++){
             Trapez t = trapezi.get(i);
@@ -369,6 +372,11 @@ public class PlayScreen implements Screen {
         if(levelTimestamp < 1 && !dead) {
             seconds = passedTime / 1000000000; //conversion from nanoseconds to seconds
             milliseconds = (passedTime - seconds * 1000000000) / 100000000;
+        }else if(canPlayWinSound && !dead){
+            deathTime = System.nanoTime();
+            dead = true;
+            winSound.play(0.8f);
+            canPlayWinSound = false;
         }
         drawScreenBox(false,300, 50, 20);
         String secondsString;

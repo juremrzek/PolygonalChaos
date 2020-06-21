@@ -22,7 +22,7 @@ public class MyGdxGame extends Game {
 		font.setColor(1.0f, 1.0f, 1.0f, 1.0f);
 		sr = new ShapeRenderer();
 		sr.setColor(Color.BLACK);
-		fullscreen = false;
+		fullscreen = true;
 		primaryMonitor = Gdx.graphics.getPrimaryMonitor();
 		if(fullscreen)
 			Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode(primaryMonitor));
